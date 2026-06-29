@@ -1,1 +1,36 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#141A24"/><stop offset="1" stop-color="#0A0C10"/></linearGradient><linearGradient id="w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2DBE86"/><stop offset=".55" stop-color="#3DE0A0"/><stop offset="1" stop-color="#7CF0C4"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#b)"/><path d="M70 350 Q140 360 180 300 T270 250 Q320 215 360 150 T442 120" fill="none" stroke="url(#w)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="270" cy="250" r="20" fill="#0A0C10"/><circle cx="270" cy="250" r="20" fill="none" stroke="#3DE0A0" stroke-width="7"/><circle cx="270" cy="250" r="6" fill="#7CF0C4"/></svg>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#141A24"/>
+      <stop offset="1" stop-color="#0A0C10"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2DBE86"/>
+      <stop offset="0.55" stop-color="#3DE0A0"/>
+      <stop offset="1" stop-color="#7CF0C4"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="3" y="3" width="506" height="506" rx="113" fill="none" stroke="#3DE0A0" stroke-opacity="0.16" stroke-width="2"/>
+
+  <!-- faint baseline grid -->
+  <g stroke="#3DE0A0" stroke-opacity="0.07" stroke-width="2">
+    <line x1="70" y1="190" x2="442" y2="190"/>
+    <line x1="70" y1="322" x2="442" y2="322"/>
+  </g>
+
+  <!-- the wave: an impulse reading left to right -->
+  <path d="M70 350 Q140 360 180 300 T270 250 Q320 215 360 150 T442 120"
+        fill="none" stroke="url(#wave)" stroke-width="26"
+        stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- pivot node where the read confirms -->
+  <circle cx="270" cy="250" r="20" fill="#0A0C10"/>
+  <circle cx="270" cy="250" r="20" fill="none" stroke="#3DE0A0" stroke-width="7"/>
+  <circle cx="270" cy="250" r="6" fill="#7CF0C4"/>
+</svg>

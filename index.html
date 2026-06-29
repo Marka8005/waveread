@@ -6,7 +6,6 @@
 <title>WaveRead</title>
 <meta name="theme-color" content="#0A0C10">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -199,6 +198,7 @@ function render(d){
   if(tgts.length){h+=`<div class="tgts">`;tgts.forEach(t=>{h+=`<div class="tgtline"><span>${esc(t.label)} ${esc(t.price)}</span><span class="pct">${esc(t.pct)}</span></div>`});h+=`</div>`;}
   h+=`</div>`;
   h+='<div class="cards">';
+  if(d.active_wave)h+=`<div class="card"><div class="ctitle">Wave status</div><div class="cbody">${esc(d.active_wave)}</div></div>`;
   if(d.waves)h+=`<div class="card"><div class="ctitle">Wave map</div><div class="wave">${esc(d.waves)}</div></div>`;
   if(d.fib_ladder)h+=`<div class="card"><div class="ctitle">Fib ladder</div><div class="wave">${esc(d.fib_ladder)}</div></div>`;
   h+=`<div class="two">`;
