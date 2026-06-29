@@ -140,8 +140,7 @@ function downscale(file,maxDim=1600,quality=0.85){
       const c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(im,0,0,w,h);
       URL.revokeObjectURL(url);
-      const dataUrl=c.toDataURL('image/jpeg',quality);
-      resolve({dataUrl,mime:'image/jpeg'});
+      resolve({dataUrl:c.toDataURL('image/jpeg',quality),mime:'image/jpeg'});
     };
     im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image'))};
     im.src=url;
@@ -171,7 +170,7 @@ go.addEventListener('click',analyze);
 
 async function analyze(){
   if(!imgData)return;
-  go.disabled=true;resultEl.classList.remove('show');rawEl.classList.remove('show');
+  go.disabled=true;resultEl.classList.remove('show');
   statusEl.className='status show';statusEl.innerHTML='<span class="spin"></span>Reading the chart…';
   try{
     const res=await fetch('/api/analyze',{
@@ -180,9 +179,8 @@ async function analyze(){
     });
     const data=await res.json();
     if(res.status===429){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||'Limit reached.')+'</span>';go.disabled=false;return;}
-    if(!res.ok){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||'Something went wrong.')+'</span>';go.disabled=false;return;}
+    if(!res.ok||!data.result){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||"Couldn't read this chart. Try a clearer screenshot, or paste the OHLC/levels.")+'</span>';go.disabled=false;return;}
     if(typeof data.used==='number'&&typeof data.cap==='number'){quotaEl.textContent=Math.max(0,data.cap-data.used)+' free analyses left today';}
-    if(!data.result){statusEl.className='status show';statusEl.innerHTML='<span class="err">Could not read the chart. Try a sharper image.</span>';go.disabled=false;return;}
     statusEl.className='status';render(data.result);
   }catch(err){statusEl.className='status show';statusEl.innerHTML='<span class="err">Network error. Try again.</span>';}
   go.disabled=false;
@@ -201,6 +199,7 @@ function render(d){
   h+=`</div>`;
   h+='<div class="cards">';
   if(d.waves)h+=`<div class="card"><div class="ctitle">Wave map</div><div class="wave">${esc(d.waves)}</div></div>`;
+  if(d.fib_ladder)h+=`<div class="card"><div class="ctitle">Fib ladder</div><div class="wave">${esc(d.fib_ladder)}</div></div>`;
   h+=`<div class="two">`;
   if(d.wyckoff)h+=`<div class="card"><div class="ctitle">Wyckoff</div><div class="cbody">${esc(d.wyckoff)}</div></div>`;
   if(d.subwave)h+=`<div class="card"><div class="ctitle">Sub-wave</div><div class="cbody">${esc(d.subwave)}</div></div>`;
