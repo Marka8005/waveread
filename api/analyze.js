@@ -4,9 +4,9 @@
 
 const SYSTEM = `You are a trading analyst applying a strict protocol (Elliott Wave + Wyckoff + Fibonacci) to a candlestick chart image. Reply in ENGLISH.
 
-BE EXTREMELY CONCISE. Every text field = ONE short line, no paragraphs. This renders on a phone. Cut all filler.
+BE EXTREMELY CONCISE. Every field = ONE short line, no paragraphs. This renders on a phone. Cut all filler.
 
-Method (do internally, output only the short result):
+Method (do internally, report only the short result via the tool):
 1. Read latest candle OHLC + % change from the image.
 2. List the last 5 candle lows. Lowest = latest SSL test.
 3. Wyckoff phase (accumulation/markup/distribution/markdown; note SC/spring if seen).
@@ -17,8 +17,34 @@ Method (do internally, output only the short result):
 8. Stop with a one-line reason. Decision: BUY / WAIT / AVOID.
 If the image isn't sharp enough for exact levels, say so briefly in warnings and name which numbers the user should type in. No time estimates.
 
-Output ONLY valid JSON, no markdown, no code fences, no text before/after. Keep every value SHORT:
-{"ticker":"","timeframe":"","ohlc":{"open":"","high":"","low":"","close":"","change":""},"last5lows":["","","","",""],"ssl_test":"one short line","wyckoff":"one short line","waves":"W1 a->b | W2 c | W3 c->d | W4 now e | W5 pending","subwave":"one short line","entry":"price + Fib level, or 'No confirmed entry'","targets":[{"label":"T1","price":"","pct":""},{"label":"T2","price":"","pct":""},{"label":"T3","price":"","pct":""}],"stop":"","stop_reason":"one short line","volume":"one short line","decision":"BUY|WAIT|AVOID","decision_note":"one short sentence","warnings":["short, only if needed"]}`;
+Report your analysis by calling the report_trade_plan tool. Keep every field value short.`;
+
+const TOOL = {
+  name: 'report_trade_plan',
+  description: 'Report the completed trade plan analysis.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      ticker:       { type: 'string' },
+      timeframe:    { type: 'string' },
+      ohlc:         { type: 'object', properties: { open: { type: 'string' }, high: { type: 'string' }, low: { type: 'string' }, close: { type: 'string' }, change: { type: 'string' } } },
+      last5lows:    { type: 'array', items: { type: 'string' } },
+      ssl_test:     { type: 'string' },
+      wyckoff:      { type: 'string' },
+      waves:        { type: 'string' },
+      subwave:      { type: 'string' },
+      entry:        { type: 'string' },
+      targets:      { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, price: { type: 'string' }, pct: { type: 'string' } } } },
+      stop:         { type: 'string' },
+      stop_reason:  { type: 'string' },
+      volume:       { type: 'string' },
+      decision:     { type: 'string', enum: ['BUY', 'WAIT', 'AVOID'] },
+      decision_note:{ type: 'string' },
+      warnings:     { type: 'array', items: { type: 'string' } },
+    },
+    required: ['decision', 'entry', 'stop', 'decision_note'],
+  },
+};
 
 // --- Free-tier cap (best-effort, in-memory) ---
 // Milestone 1: 5 free analyses per visitor per day, plus a global safety
@@ -79,8 +105,10 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 1024,
         system: SYSTEM,
+        tools: [TOOL],
+        tool_choice: { type: 'tool', name: 'report_trade_plan' },
         messages: [{
           role: 'user',
           content: [
@@ -97,16 +125,15 @@ export default async function handler(req, res) {
     }
 
     const data = await r.json();
-    const text = (data.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim();
+    const block = (data.content || []).find((b) => b.type === 'tool_use');
+    if (!block) {
+      return res.status(502).json({ error: 'Model did not return a trade plan.' });
+    }
 
     ipHits.set(ipKey, used + 1);
     globalCount++;
 
-    return res.status(200).json({ text, used: used + 1, cap: DAILY_CAP });
+    return res.status(200).json({ result: block.input, used: used + 1, cap: DAILY_CAP });
   } catch (e) {
     return res.status(500).json({ error: 'Server error.' });
   }
