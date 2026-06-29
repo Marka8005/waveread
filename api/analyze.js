@@ -17,10 +17,14 @@ CONSISTENCY — CRITICAL:
 - waves, subwave and wyckoff MUST all agree with active_wave. Never contradict yourself.
 
 SETUP TYPE — choose setup_type and make the entry MATCH the thesis:
-- "reversal": a Spring / SC / W4-low reversal where you buy NEAR the reversal low. entry_price = just above the confirmed low (small buffer); stop just below that low. Do NOT use a higher Fib retracement as the entry. The Fib ladder is for targets/context only.
+- "reversal": a Spring / SC / W4-low reversal where you buy NEAR the reversal low. entry_price = at/just above the actual reversal-low candle; it must NOT be above current price (that would mean waiting for a drop = pullback, not reversal) and NOT far above the recent low. stop just below that low. The Fib ladder is for targets/context only.
 - "pullback": price has already confirmed an up-move and is extended; you wait for a retracement DOWN to a Fib level. entry_fib = the level (38.2/50/61.8/78.6); choose WAIT only until price reaches it.
 - "breakout": entry just above a confirmation/breakout level. entry_price = that level.
 NEVER propose buying far above a low you just called support. If your read is a bottom/spring, the entry is AT the bottom, not above it. Entry must fit the thesis.
+
+CONFIRMATION & AMBIGUITY:
+- Set setup_confirmed = true ONLY if the trigger has actually printed (e.g. a confirmed reversal candle / spring test / a held Fib level). If you are "waiting for confirmation", set it false and decision = WAIT.
+- A single green bounce candle inside an ongoing downtrend is NOT a confirmed reversal. On ambiguous charts with no clean, confirmed setup, prefer decision = AVOID or WAIT and do not force a precise entry.
 
 ENTRY INPUTS: give swing_low and swing_high (the move whose Fib retracement matters). For "pullback" give entry_fib. For "reversal"/"breakout" give entry_price as a plain number.
 TARGETS/STOP: give target prices (targets_px) and stop_price as plain numbers; stop_reason consistent with stop_price.
@@ -43,6 +47,7 @@ const TOOL = {
       waves: { type: 'string', description: 'Compact W1->W5, must agree with active_wave' },
       subwave: { type: 'string', description: 'One short line, must agree with active_wave' },
       setup_type: { type: 'string', enum: ['reversal', 'pullback', 'breakout'], description: 'Determines how entry is set' },
+      setup_confirmed: { type: 'boolean', description: 'True only if the entry trigger has actually printed. False if waiting for confirmation.' },
       swing_low: { type: 'number', description: 'Low of the move being retraced' },
       swing_high: { type: 'number', description: 'High of that move' },
       entry_fib: { type: 'number', enum: [38.2, 50, 61.8, 78.6], description: 'For pullback setups: the Fib level to enter at' },
@@ -55,7 +60,7 @@ const TOOL = {
       decision_note: { type: 'string', description: 'Short action sentence, no level numbers' },
       warnings: { type: 'array', items: { type: 'string' } },
     },
-    required: ['decision', 'decision_note', 'active_wave', 'setup_type'],
+    required: ['decision', 'decision_note', 'active_wave', 'setup_type', 'setup_confirmed'],
   },
 };
 
@@ -120,6 +125,26 @@ function compute(input) {
     });
   }
 
+  // Reversal sanity: entry must anchor to the actual low, not require a drop.
+  const lows = (Array.isArray(input.last5lows) ? input.last5lows : []).map(num).filter((v) => v != null);
+  const ohlcLow = num(input.ohlc && input.ohlc.low);
+  const recentLow = [...lows, ...(ohlcLow != null ? [ohlcLow] : [])].reduce((m, v) => (m == null ? v : Math.min(m, v)), null);
+  if (stype === 'reversal' && entryPrice != null) {
+    if (close != null && entryPrice < close * 0.995) {
+      warnings.unshift(`Marked "reversal" but entry (${fmt(entryPrice)}) is below current price (${fmt(close)}) — that is pullback logic, not a reversal. Setup type and entry disagree.`);
+    } else if (recentLow != null && entryPrice > recentLow * 1.03) {
+      warnings.unshift(`Reversal entry (${fmt(entryPrice)}) sits >3% above the reversal low (~${fmt(recentLow)}) — for a reversal you buy near the low. Verify.`);
+    }
+  }
+
+  // Unconfirmed setup = a watch, not a live entry.
+  let decisionOut = input.decision || '';
+  if (input.setup_confirmed === false) {
+    if ((decisionOut || '').toUpperCase() === 'BUY') decisionOut = 'WAIT';
+    if (entryPrice != null && entry !== 'No confirmed entry') entry = entry + ' (unconfirmed — wait for trigger)';
+    warnings.unshift('Setup not yet confirmed — treat as a watch, not a live entry.');
+  }
+
   // Risk + R/R sanity check.
   let risk;
   if (entryPrice != null && stopP != null && entryPrice !== 0) {
@@ -138,7 +163,7 @@ function compute(input) {
     last5lows: input.last5lows, ssl_test: input.ssl_test,
     active_wave: input.active_wave, wyckoff: input.wyckoff, waves: input.waves, subwave: input.subwave,
     fib_ladder, entry, targets, stop: stopP != null ? fmt(stopP) : '—', risk, stop_reason: input.stop_reason,
-    volume: input.volume, decision: input.decision, decision_note: input.decision_note, warnings,
+    volume: input.volume, decision: decisionOut, decision_note: input.decision_note, warnings,
   };
 }
 
