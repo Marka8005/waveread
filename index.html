@@ -195,8 +195,8 @@ function render(d){
   const o=d.ohlc||{},lows=(d.last5lows||[]).filter(Boolean);
   const tgts=(d.targets||[]).filter(t=>t&&(t.price||t.pct)),warns=(d.warnings||[]).filter(Boolean);
   let h='';
-  h+=`<div class="verdict"><div><div class="vhead">${esc(d.ticker||'—')}${d.timeframe?' · '+esc(d.timeframe):''}</div><div class="vnote">${esc(d.decision_note||dec)}</div></div><div class="pill ${pc}">${esc(dec||'—')}</div></div>`;
-  h+=`<div class="plan"><div class="planrow"><span class="pl">Entry</span><span class="pv">${esc(d.entry||'—')}</span></div><div class="planrow"><span class="pl">Stop</span><span class="pv stop">${esc(d.stop||'—')}</span></div>`;
+  h+=`<div class="verdict"><div><div class="vhead">${esc(d.ticker||'—')}${d.timeframe?' · '+esc(d.timeframe):''}${d.setup_type?' · '+esc(d.setup_type):''}</div><div class="vnote">${esc(d.decision_note||dec)}</div></div><div class="pill ${pc}">${esc(dec||'—')}</div></div>`;
+  h+=`<div class="plan"><div class="planrow"><span class="pl">Entry</span><span class="pv">${esc(d.entry||'—')}</span></div><div class="planrow"><span class="pl">Stop</span><span class="pv stop">${esc(d.stop||'—')}</span></div>${d.risk?`<div class="planrow"><span class="pl">Risk</span><span class="pv stop">${esc(d.risk)}</span></div>`:''}`;
   if(tgts.length){h+=`<div class="tgts">`;tgts.forEach(t=>{h+=`<div class="tgtline"><span>${esc(t.label)} ${esc(t.price)}</span><span class="pct">${esc(t.pct)}</span></div>`});h+=`</div>`;}
   h+=`</div>`;
   h+='<div class="cards">';
