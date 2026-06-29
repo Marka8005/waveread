@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WaveRead</title>
+<meta name="theme-color" content="#0A0C10">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WaveRead">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0C10; --panel:#12151C; --panel2:#171B24; --line:#232834;
+    --text:#E6E9EF; --muted:#8B93A3; --faint:#5A6273;
+    --accent:#3DE0A0; --accent-dim:rgba(61,224,160,.12);
+    --warn:#F5B544; --warn-dim:rgba(245,181,68,.12);
+    --danger:#FF6B6B; --danger-dim:rgba(255,107,107,.12);
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:680px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 16px 70px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  h1{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:-.02em;margin:0;line-height:1}
+  .tag{color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.05em;margin-top:6px}
+  .sub{color:var(--faint);font-size:13px;margin:12px 0 18px;line-height:1.5}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .field{flex:1;min-width:140px}
+  label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  input[type=text],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 12px;outline:none;transition:border-color .15s}
+  input[type=text]:focus,textarea:focus{border-color:var(--accent)}
+  textarea{resize:vertical;min-height:58px;line-height:1.5}
+  .drop{margin-top:13px;border:1.5px dashed var(--line);border-radius:12px;background:var(--panel2);min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:.15s;text-align:center;padding:16px;position:relative;overflow:hidden}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-dim)}
+  .drop .ic{width:32px;height:32px;color:var(--faint)}
+  .drop .big{font-family:var(--disp);font-weight:500;font-size:14.5px}
+  .drop .small{color:var(--faint);font-size:12px}
+  .drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0d1016}
+  .drop .clear{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:1px solid var(--line);color:var(--text);border-radius:7px;width:28px;height:28px;font-size:15px;cursor:pointer;display:none;z-index:2}
+  .drop.has .clear{display:block}
+  .go{margin-top:14px;width:100%;background:var(--accent);color:#04130c;border:none;border-radius:10px;font-family:var(--disp);font-weight:700;font-size:15px;padding:14px;cursor:pointer;transition:.15s}
+  .go:hover{opacity:.92}.go:active{transform:translateY(1px)}
+  .go:disabled{opacity:.4;cursor:not-allowed}
+  .quota{margin-top:10px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+  .disc{margin-top:12px;color:var(--faint);font-size:11px;line-height:1.5;display:flex;gap:7px}
+  .disc svg{flex:0 0 auto;margin-top:1px}
+  .result{margin-top:20px;display:none}.result.show{display:block}
+  .verdict{border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:12px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .vhead{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.03em}
+  .vnote{font-family:var(--disp);font-weight:500;font-size:15px;margin-top:3px;line-height:1.35}
+  .pill{font-family:var(--mono);font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;flex:0 0 auto}
+  .pill.buy{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(61,224,160,.35)}
+  .pill.wait{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(245,181,68,.35)}
+  .pill.avoid{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(255,107,107,.35)}
+  .plan{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 16px 14px;margin-bottom:12px}
+  .planrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid rgba(35,40,52,.7)}
+  .planrow:last-child{border-bottom:none}
+  .pl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .pv{font-family:var(--mono);font-size:15px;text-align:right}.pv.stop{color:var(--danger)}
+  .tgts{padding:12px 0 2px}
+  .tgtline{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:14px;padding:6px 0}
+  .tgtline .pct{color:var(--accent);font-weight:600}
+  .cards{display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .ctitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .cbody{font-size:13.5px;line-height:1.5;color:var(--text)}
+  .wave{font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--text)}
+  .strip{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
+  .strip span{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+  .two{display:flex;gap:10px}.two .card{flex:1}
+  @media(max-width:520px){.two{flex-direction:column}}
+  .warnbox{background:var(--warn-dim);border:1px solid rgba(245,181,68,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;color:#f0c878;display:flex;gap:8px}
+  .warnbox svg{flex:0 0 auto;margin-top:1px}
+  .status{display:none;margin-top:20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px}
+  .status.show{display:block}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .err{color:var(--danger)}
+  .raw{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;line-height:1.5;color:var(--muted);display:none}
+  .raw.show{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
+      <rect x="1" y="1" width="38" height="38" rx="10" stroke="var(--line)" stroke-width="1.5"/>
+      <path d="M6 26 Q12 8 19 20 T33 14" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <circle cx="19" cy="20" r="2.4" fill="var(--accent)"/>
+    </svg>
+    <div><h1>WaveRead</h1><div class="tag">CHART IN → PLAN OUT</div></div>
+  </header>
+  <p class="sub">Drop in a chart screenshot. WaveRead reads the structure and returns a clean trade plan — Wyckoff phase, Elliott waves W1→W5, Fib entry, targets, and stop.</p>
+
+  <div class="panel">
+    <div class="row">
+      <div class="field"><label for="ticker">Ticker (optional)</label><input type="text" id="ticker" placeholder="e.g. SLNH" autocomplete="off"></div>
+      <div class="field"><label for="tf">Timeframe (optional)</label><input type="text" id="tf" placeholder="e.g. Daily" autocomplete="off"></div>
+    </div>
+    <div class="field" style="margin-top:13px"><label for="ohlc">Paste OHLC / levels for precision (optional)</label><textarea id="ohlc" placeholder="Latest candle O/H/L/C, last 5 lows... helps where the image isn't sharp enough."></textarea></div>
+    <div class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" hidden>
+      <button class="clear" id="clear" title="Clear image">×</button>
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16M14 14l1.6-1.6a2 2 0 012.8 0L21 15M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="9.5" r="1.5"/></svg>
+      <div class="big">Drop chart image here</div>
+      <div class="small">or tap to choose · or paste (⌘/Ctrl+V)</div>
+    </div>
+    <button class="go" id="go" disabled>Analyze chart</button>
+    <div class="quota" id="quota"></div>
+    <div class="disc">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01" stroke-linecap="round"/></svg>
+      <span>Education and research tool — not financial advice. The AI reads an image and can miss exact levels or wicks. Always verify against your own chart before acting.</span>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="result" id="result"></div>
+  <div class="raw" id="raw"></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const drop=$('#drop'),fileInput=$('#file'),clearBtn=$('#clear'),go=$('#go');
+const statusEl=$('#status'),resultEl=$('#result'),rawEl=$('#raw'),quotaEl=$('#quota');
+let imgData=null,imgMime=null;
+
+function downscale(file,maxDim=1600,quality=0.85){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const im=new Image();
+    im.onload=()=>{
+      let{width:w,height:h}=im;
+      const scale=Math.min(1,maxDim/Math.max(w,h));
+      w=Math.round(w*scale);h=Math.round(h*scale);
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(im,0,0,w,h);
+      URL.revokeObjectURL(url);
+      const dataUrl=c.toDataURL('image/jpeg',quality);
+      resolve({dataUrl,mime:'image/jpeg'});
+    };
+    im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image'))};
+    im.src=url;
+  });
+}
+async function handleFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  try{
+    const{dataUrl,mime}=await downscale(file);
+    imgData=dataUrl.split(',')[1];imgMime=mime;
+    drop.classList.add('has');
+    let p=drop.querySelector('img');if(!p){p=document.createElement('img');drop.appendChild(p);}
+    p.src=dataUrl;go.disabled=false;
+  }catch(e){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+e.message+'</span>';}
+}
+function clearImage(){imgData=null;imgMime=null;drop.classList.remove('has');const p=drop.querySelector('img');if(p)p.remove();fileInput.value='';go.disabled=true;}
+
+drop.addEventListener('click',e=>{if(e.target===clearBtn)return;fileInput.click();});
+fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+clearBtn.addEventListener('click',e=>{e.stopPropagation();clearImage();});
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');handleFile(e.dataTransfer.files[0])});
+window.addEventListener('paste',e=>{for(const it of e.clipboardData.items){if(it.type.startsWith('image/')){handleFile(it.getAsFile());break;}}});
+
+go.addEventListener('click',analyze);
+
+async function analyze(){
+  if(!imgData)return;
+  go.disabled=true;resultEl.classList.remove('show');rawEl.classList.remove('show');
+  statusEl.className='status show';statusEl.innerHTML='<span class="spin"></span>Reading the chart…';
+  try{
+    const res=await fetch('/api/analyze',{
+      method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({image:imgData,mime:imgMime,ticker:$('#ticker').value.trim(),tf:$('#tf').value.trim(),ohlc:$('#ohlc').value.trim()})
+    });
+    const data=await res.json();
+    if(res.status===429){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||'Limit reached.')+'</span>';go.disabled=false;return;}
+    if(!res.ok){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||'Something went wrong.')+'</span>';go.disabled=false;return;}
+    if(typeof data.used==='number'&&typeof data.cap==='number'){quotaEl.textContent=Math.max(0,data.cap-data.used)+' free analyses left today';}
+    const clean=(data.text||'').replace(/```json|```/g,'').trim();
+    let parsed;
+    try{parsed=JSON.parse(clean);}catch{statusEl.className='status';rawEl.textContent=clean;rawEl.classList.add('show');go.disabled=false;return;}
+    statusEl.className='status';render(parsed);
+  }catch(err){statusEl.className='status show';statusEl.innerHTML='<span class="err">Network error. Try again.</span>';}
+  go.disabled=false;
+}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function render(d){
+  const dec=(d.decision||'').toUpperCase();
+  const pc=dec.includes('BUY')?'buy':dec.includes('WAIT')?'wait':'avoid';
+  const o=d.ohlc||{},lows=(d.last5lows||[]).filter(Boolean);
+  const tgts=(d.targets||[]).filter(t=>t&&(t.price||t.pct)),warns=(d.warnings||[]).filter(Boolean);
+  let h='';
+  h+=`<div class="verdict"><div><div class="vhead">${esc(d.ticker||'—')}${d.timeframe?' · '+esc(d.timeframe):''}</div><div class="vnote">${esc(d.decision_note||dec)}</div></div><div class="pill ${pc}">${esc(dec||'—')}</div></div>`;
+  h+=`<div class="plan"><div class="planrow"><span class="pl">Entry</span><span class="pv">${esc(d.entry||'—')}</span></div><div class="planrow"><span class="pl">Stop</span><span class="pv stop">${esc(d.stop||'—')}</span></div>`;
+  if(tgts.length){h+=`<div class="tgts">`;tgts.forEach(t=>{h+=`<div class="tgtline"><span>${esc(t.label)} ${esc(t.price)}</span><span class="pct">${esc(t.pct)}</span></div>`});h+=`</div>`;}
+  h+=`</div>`;
+  h+='<div class="cards">';
+  if(d.waves)h+=`<div class="card"><div class="ctitle">Wave map</div><div class="wave">${esc(d.waves)}</div></div>`;
+  h+=`<div class="two">`;
+  if(d.wyckoff)h+=`<div class="card"><div class="ctitle">Wyckoff</div><div class="cbody">${esc(d.wyckoff)}</div></div>`;
+  if(d.subwave)h+=`<div class="card"><div class="ctitle">Sub-wave</div><div class="cbody">${esc(d.subwave)}</div></div>`;
+  h+=`</div>`;
+  if(d.stop_reason||d.volume){h+=`<div class="two">`;if(d.volume)h+=`<div class="card"><div class="ctitle">Volume</div><div class="cbody">${esc(d.volume)}</div></div>`;if(d.stop_reason)h+=`<div class="card"><div class="ctitle">Stop logic</div><div class="cbody">${esc(d.stop_reason)}</div></div>`;h+=`</div>`;}
+  if(o.close||o.open){h+=`<div class="card"><div class="ctitle">Latest candle</div><div class="strip"><span>O ${esc(o.open)}</span><span>H ${esc(o.high)}</span><span>L ${esc(o.low)}</span><span>C ${esc(o.close)}</span>${o.change?`<span>Δ ${esc(o.change)}</span>`:''}</div></div>`;}
+  if(lows.length){h+=`<div class="card"><div class="ctitle">Last 5 lows · SSL ${esc(d.ssl_test||'')}</div><div class="strip">${lows.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`;}
+  if(warns.length){h+=`<div class="warnbox"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3z" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke-linecap="round"/></svg><div><b>Image gaps:</b> ${warns.map(esc).join(' · ')}</div></div>`;}
+  h+='</div>';
+  resultEl.innerHTML=h;resultEl.classList.add('show');resultEl.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
