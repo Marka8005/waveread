@@ -27,7 +27,7 @@ CONFIRMATION & AMBIGUITY:
 - A single green bounce candle inside an ongoing downtrend is NOT a confirmed reversal. On ambiguous charts with no clean, confirmed setup, prefer decision = AVOID or WAIT and do not force a precise entry.
 
 ENTRY INPUTS: give swing_low and swing_high (the move whose Fib retracement matters). For "pullback" give entry_fib. For "reversal"/"breakout" give entry_price as a plain number.
-TARGETS/STOP: give target prices (targets_px) and stop_price as plain numbers; stop_reason consistent with stop_price.
+TARGETS/STOP: give target prices (targets_px) and stop_price as plain numbers; stop_reason consistent with stop_price. For a long, stop_price MUST be below entry (never above it).
 
 Keep every text field to ONE short line, phone-readable. decision_note = short action sentence, no level numbers. No time estimates. If the image isn't sharp enough, say so in warnings. Report via report_trade_plan.`;
 
@@ -159,15 +159,20 @@ function compute(input) {
     warnings.unshift('Setup not yet confirmed — treat as a watch, not a live entry.');
   }
 
-  // Risk + R/R sanity check.
+  // Trade-plan validity + risk/R:R. For a long, stop MUST be below entry.
   let risk;
   if (entryPrice != null && stopP != null && entryPrice !== 0) {
-    const rp = ((entryPrice - stopP) / entryPrice) * 100;
-    risk = (rp >= 0 ? '-' : '+') + fmt(Math.abs(rp)) + '% to stop';
-    if (rp > 0 && tps.length) {
-      const r1 = ((tps[0] - entryPrice) / entryPrice) * 100;
-      if (r1 > 0 && r1 < rp) {
-        warnings.unshift(`Poor risk/reward: risking ~${fmt(rp)}% to make ~${fmt(r1)}% at T1 — entry may be too far from the actionable level for this setup.`);
+    if (stopP >= entryPrice) {
+      warnings.unshift(`Invalid stop: stop (${fmt(stopP)}) is at/above entry (${fmt(entryPrice)}) — for a long the stop must be below entry. Do not trade as shown.`);
+      risk = 'stop above entry — invalid';
+    } else {
+      const rp = ((entryPrice - stopP) / entryPrice) * 100;
+      risk = '-' + fmt(rp) + '% to stop';
+      if (tps.length) {
+        const r1 = ((tps[0] - entryPrice) / entryPrice) * 100;
+        if (r1 > 0 && r1 < rp) {
+          warnings.unshift(`Poor risk/reward: risking ~${fmt(rp)}% to make ~${fmt(r1)}% at T1 — entry may be too far from the actionable level for this setup.`);
+        }
       }
     }
   }
