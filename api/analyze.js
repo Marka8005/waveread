@@ -78,6 +78,30 @@ function num(x) {
 }
 function fmt(n) { return (Math.round(n * 100) / 100).toString(); }
 
+// One general rule: a long entry must sit on the correct side of price for its
+// setup type, a BUY must be at market, and very deep waited-for pullbacks are
+// flagged. Replaces the earlier scattered per-setup checks.
+function coherence(setup, decision, entryPrice, close, recentLow) {
+  if (entryPrice == null || close == null || close === 0) return null;
+  const gap = ((entryPrice - close) / close) * 100; // + = entry above price, - = below
+  const D = (decision || '').toUpperCase();
+
+  if (D === 'BUY' && Math.abs(gap) > 2) {
+    return `Decision is BUY but entry (${fmt(entryPrice)}) is ${fmt(Math.abs(gap))}% ${gap > 0 ? 'above' : 'below'} current price (${fmt(close)}) — a buy should be at/near price, otherwise it is a WAIT.`;
+  }
+  if (setup === 'pullback') {
+    if (gap > 1) return `Pullback entry (${fmt(entryPrice)}) is above current price (${fmt(close)}) — a pullback waits for price to fall, so entry should be below. Contradiction.`;
+    if (D === 'WAIT' && close <= entryPrice * 1.005) return `Says WAIT but price (${fmt(close)}) has already reached the entry (${fmt(entryPrice)}) — pullback done, treat as live.`;
+    if (gap < -8) return `Waiting for a ~${fmt(Math.abs(gap))}% pullback to ${fmt(entryPrice)} — a deep retrace from ${fmt(close)}. Verify the thesis supports it; do not wait for a dip if you say the impulse has already started.`;
+  } else if (setup === 'breakout') {
+    if (gap < -1) return `Breakout entry (${fmt(entryPrice)}) is below current price (${fmt(close)}) — a breakout waits for price to rise above a level, so entry should be above. Contradiction.`;
+  } else if (setup === 'reversal') {
+    if (gap < -1) return `Reversal entry (${fmt(entryPrice)}) is below current price (${fmt(close)}) — that is waiting for a further drop (pullback logic), not a reversal bought near the low.`;
+    if (recentLow != null && entryPrice > recentLow * 1.03) return `Reversal entry (${fmt(entryPrice)}) sits >3% above the reversal low (~${fmt(recentLow)}) — for a reversal you buy near the low. Verify.`;
+  }
+  return null;
+}
+
 function compute(input) {
   const lo = num(input.swing_low), hi = num(input.swing_high);
   const stopP = num(input.stop_price);
@@ -106,11 +130,6 @@ function compute(input) {
     if (ep != null) { entryPrice = ep; entry = `${fmt(ep)} · ${stype || 'entry'}`; }
   }
 
-  // WAIT only valid (for pullback) if price hasn't reached the entry yet.
-  if (stype === 'pullback' && entryPrice != null && close != null && decision === 'WAIT' && close <= entryPrice * 1.01) {
-    warnings.unshift(`Says WAIT but price (${fmt(close)}) has already reached the entry level (${fmt(entryPrice)}) — pullback done, treat as live and verify.`);
-  }
-
   // Targets % from the resolved entry.
   let targets = [];
   const tps = Array.isArray(input.targets_px) ? input.targets_px.map(num).filter((v) => v != null) : [];
@@ -125,17 +144,12 @@ function compute(input) {
     });
   }
 
-  // Reversal sanity: entry must anchor to the actual low, not require a drop.
+  // General entry/price coherence check (covers pullback, breakout, reversal).
   const lows = (Array.isArray(input.last5lows) ? input.last5lows : []).map(num).filter((v) => v != null);
   const ohlcLow = num(input.ohlc && input.ohlc.low);
   const recentLow = [...lows, ...(ohlcLow != null ? [ohlcLow] : [])].reduce((m, v) => (m == null ? v : Math.min(m, v)), null);
-  if (stype === 'reversal' && entryPrice != null) {
-    if (close != null && entryPrice < close * 0.995) {
-      warnings.unshift(`Marked "reversal" but entry (${fmt(entryPrice)}) is below current price (${fmt(close)}) — that is pullback logic, not a reversal. Setup type and entry disagree.`);
-    } else if (recentLow != null && entryPrice > recentLow * 1.03) {
-      warnings.unshift(`Reversal entry (${fmt(entryPrice)}) sits >3% above the reversal low (~${fmt(recentLow)}) — for a reversal you buy near the low. Verify.`);
-    }
-  }
+  const coh = coherence(stype, decision, entryPrice, close, recentLow);
+  if (coh) warnings.unshift(coh);
 
   // Unconfirmed setup = a watch, not a live entry.
   let decisionOut = input.decision || '';
