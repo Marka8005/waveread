@@ -16,76 +16,114 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0A0C10; --panel:#12151C; --panel2:#171B24; --line:#232834;
-    --text:#E6E9EF; --muted:#8B93A3; --faint:#5A6273;
-    --accent:#3DE0A0; --accent-dim:rgba(61,224,160,.12);
-    --warn:#F5B544; --warn-dim:rgba(245,181,68,.12);
-    --danger:#FF6B6B; --danger-dim:rgba(255,107,107,.12);
-    --mono:'IBM Plex Mono',ui-monospace,monospace;
-    --disp:'Space Grotesk',system-ui,sans-serif;
-    --body:'Inter',system-ui,sans-serif;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
-  .wrap{max-width:680px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 16px 70px}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:4px}
-  h1{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:-.02em;margin:0;line-height:1}
-  .tag{color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.05em;margin-top:6px}
-  .sub{color:var(--faint);font-size:13px;margin:12px 0 18px;line-height:1.5}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  .field{flex:1;min-width:140px}
-  label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-  input[type=text],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 12px;outline:none;transition:border-color .15s}
-  input[type=text]:focus,textarea:focus{border-color:var(--accent)}
-  textarea{resize:vertical;min-height:58px;line-height:1.5}
-  .drop{margin-top:13px;border:1.5px dashed var(--line);border-radius:12px;background:var(--panel2);min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:.15s;text-align:center;padding:16px;position:relative;overflow:hidden}
-  .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-dim)}
-  .drop .ic{width:32px;height:32px;color:var(--faint)}
-  .drop .big{font-family:var(--disp);font-weight:500;font-size:14.5px}
-  .drop .small{color:var(--faint);font-size:12px}
-  .drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0d1016}
-  .drop .clear{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:1px solid var(--line);color:var(--text);border-radius:7px;width:28px;height:28px;font-size:15px;cursor:pointer;display:none;z-index:2}
-  .drop.has .clear{display:block}
-  .go{margin-top:14px;width:100%;background:var(--accent);color:#04130c;border:none;border-radius:10px;font-family:var(--disp);font-weight:700;font-size:15px;padding:14px;cursor:pointer;transition:.15s}
-  .go:hover{opacity:.92}.go:active{transform:translateY(1px)}
-  .go:disabled{opacity:.4;cursor:not-allowed}
-  .quota{margin-top:10px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
-  .disc{margin-top:12px;color:var(--faint);font-size:11px;line-height:1.5;display:flex;gap:7px}
-  .disc svg{flex:0 0 auto;margin-top:1px}
-  .result{margin-top:20px;display:none}.result.show{display:block}
-  .verdict{border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:12px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .vhead{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.03em}
-  .vnote{font-family:var(--disp);font-weight:500;font-size:15px;margin-top:3px;line-height:1.35}
-  .pill{font-family:var(--mono);font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;flex:0 0 auto}
-  .pill.buy{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(61,224,160,.35)}
-  .pill.wait{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(245,181,68,.35)}
-  .pill.avoid{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(255,107,107,.35)}
-  .plan{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 16px 14px;margin-bottom:12px}
-  .planrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid rgba(35,40,52,.7)}
-  .planrow:last-child{border-bottom:none}
-  .pl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-  .pv{font-family:var(--mono);font-size:15px;text-align:right}.pv.stop{color:var(--danger)}
-  .tgts{padding:12px 0 2px}
-  .tgtline{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:14px;padding:6px 0}
-  .tgtline .pct{color:var(--accent);font-weight:600}
-  .cards{display:flex;flex-direction:column;gap:10px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
-  .ctitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-  .cbody{font-size:13.5px;line-height:1.5;color:var(--text)}
-  .wave{font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--text)}
-  .strip{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
-  .strip span{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
-  .two{display:flex;gap:10px}.two .card{flex:1}
-  @media(max-width:520px){.two{flex-direction:column}}
-  .warnbox{background:var(--warn-dim);border:1px solid rgba(245,181,68,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;color:#f0c878;display:flex;gap:8px}
-  .warnbox svg{flex:0 0 auto;margin-top:1px}
-  .status{display:none;margin-top:20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px}
-  .status.show{display:block}
-  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
-  @keyframes sp{to{transform:rotate(360deg)}}
-  .err{color:var(--danger)}
+:root{
+  --bg:#0A0C10;--panel:#12151C;--panel2:#171B24;--line:#232834;
+  --text:#E6E9EF;--muted:#8B93A3;--faint:#5A6273;
+  --accent:#3DE0A0;--accent-dim:rgba(61,224,160,.12);
+  --warn:#F5B544;--warn-dim:rgba(245,181,68,.12);
+  --danger:#FF6B6B;--danger-dim:rgba(255,107,107,.12);
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --disp:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 16px 70px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+h1{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:-.02em;margin:0;line-height:1}
+.tag{color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.05em;margin-top:6px}
+.sub{color:var(--faint);font-size:13px;margin:12px 0 18px;line-height:1.5}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.field{flex:1;min-width:140px}
+label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+input[type=text],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 12px;outline:none;transition:border-color .15s}
+input[type=text]:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:58px;line-height:1.5}
+
+/* mode toggle */
+.mode-toggle{display:flex;gap:8px;margin-top:13px}
+.mode-btn{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--muted);font-family:var(--mono);font-size:12px;padding:9px;cursor:pointer;transition:.15s;text-align:center}
+.mode-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+
+/* drop zones */
+.drops{display:flex;gap:10px;margin-top:13px;flex-wrap:wrap}
+.drop-wrap{flex:1;min-width:140px}
+.drop-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.drop{border:1.5px dashed var(--line);border-radius:12px;background:var(--panel2);min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:.15s;text-align:center;padding:14px;position:relative;overflow:hidden}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-dim)}
+.drop .ic{width:28px;height:28px;color:var(--faint)}
+.drop .big{font-family:var(--disp);font-weight:500;font-size:13px}
+.drop .small{color:var(--faint);font-size:11px}
+.drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0d1016}
+.drop .clear{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:1px solid var(--line);color:var(--text);border-radius:7px;width:26px;height:26px;font-size:14px;cursor:pointer;display:none;z-index:2}
+.drop.has .clear{display:block}
+
+.go{margin-top:14px;width:100%;background:var(--accent);color:#04130c;border:none;border-radius:10px;font-family:var(--disp);font-weight:700;font-size:15px;padding:14px;cursor:pointer;transition:.15s}
+.go:hover{opacity:.92}.go:active{transform:translateY(1px)}
+.go:disabled{opacity:.4;cursor:not-allowed}
+.quota{margin-top:10px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.disc{margin-top:12px;color:var(--faint);font-size:11px;line-height:1.5;display:flex;gap:7px}
+.disc svg{flex:0 0 auto;margin-top:1px}
+
+/* result */
+.result{margin-top:20px;display:none}.result.show{display:block}
+.verdict{border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:12px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.vhead{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.03em}
+.vnote{font-family:var(--disp);font-weight:500;font-size:15px;margin-top:3px;line-height:1.35}
+.pill{font-family:var(--mono);font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;flex:0 0 auto}
+.pill.buy{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(61,224,160,.35)}
+.pill.wait{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(245,181,68,.35)}
+.pill.avoid{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(255,107,107,.35)}
+.plan{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 16px 14px;margin-bottom:12px}
+.planrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid rgba(35,40,52,.7)}
+.planrow:last-child{border-bottom:none}
+.pl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pv{font-family:var(--mono);font-size:15px;text-align:right}.pv.stop{color:var(--danger)}.pv.risk{color:var(--danger)}
+.tgts{padding:12px 0 2px}
+.tgtline{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:14px;padding:6px 0}
+.tgtline .pct{color:var(--accent);font-weight:600}
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.ctitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cbody{font-size:13.5px;line-height:1.5;color:var(--text)}
+.wave{font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--text)}
+.strip{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
+.strip span{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+.two{display:flex;gap:10px}.two .card{flex:1}
+@media(max-width:520px){.two{flex-direction:column}}
+.warnbox{background:var(--warn-dim);border:1px solid rgba(245,181,68,.3);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;color:#f0c878;display:flex;gap:8px}
+.warnbox svg{flex:0 0 auto;margin-top:1px}
+.macro-badge{display:inline-block;background:rgba(100,120,255,.12);border:1px solid rgba(100,120,255,.3);color:#9aaeff;font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:6px;margin-bottom:10px}
+
+/* share button */
+.share-row{display:flex;justify-content:flex-end;margin-bottom:12px}
+.share-btn{background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-family:var(--mono);font-size:12px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.15s}
+.share-btn:hover{border-color:var(--accent);color:var(--accent)}
+.share-btn svg{width:14px;height:14px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#04130c;font-family:var(--mono);font-size:13px;font-weight:600;padding:10px 20px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+
+/* history */
+.history{margin-top:28px}
+.hist-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.hist-title{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hist-clear{background:none;border:none;color:var(--faint);font-family:var(--mono);font-size:11px;cursor:pointer;padding:4px 0}
+.hist-clear:hover{color:var(--danger)}
+.hist-list{display:flex;flex-direction:column;gap:8px}
+.hist-item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.hist-item:hover{border-color:var(--accent)}
+.hist-left{min-width:0}
+.hist-ticker{font-family:var(--disp);font-weight:600;font-size:14px}
+.hist-note{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto}
+.hist-date{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+
+.status{display:none;margin-top:20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px}
+.status.show{display:block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{color:var(--danger)}
 </style>
 </head>
 <body>
@@ -106,13 +144,35 @@
       <div class="field"><label for="tf">Timeframe (optional)</label><input type="text" id="tf" placeholder="e.g. Daily" autocomplete="off"></div>
     </div>
     <div class="field" style="margin-top:13px"><label for="ohlc">Paste OHLC / levels for precision (optional)</label><textarea id="ohlc" placeholder="Latest candle O/H/L/C, last 5 lows... helps where the image isn't sharp enough."></textarea></div>
-    <div class="drop" id="drop">
-      <input type="file" id="file" accept="image/*" hidden>
-      <button class="clear" id="clear" title="Clear image">×</button>
-      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16M14 14l1.6-1.6a2 2 0 012.8 0L21 15M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="9.5" r="1.5"/></svg>
-      <div class="big">Drop chart image here</div>
-      <div class="small">or tap to choose · or paste (⌘/Ctrl+V)</div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-single" onclick="setMode('single')">Single chart</button>
+      <button class="mode-btn" id="mode-dual" onclick="setMode('dual')">Weekly + Daily</button>
     </div>
+
+    <div class="drops" id="drops">
+      <div class="drop-wrap" id="wrap-daily">
+        <div class="drop-label" id="label-daily">Chart</div>
+        <div class="drop" id="drop-daily">
+          <input type="file" id="file-daily" accept="image/*" hidden>
+          <button class="clear" id="clear-daily">×</button>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16M14 14l1.6-1.6a2 2 0 012.8 0L21 15M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="9.5" r="1.5"/></svg>
+          <div class="big">Drop chart here</div>
+          <div class="small">or tap · or paste (⌘V)</div>
+        </div>
+      </div>
+      <div class="drop-wrap" id="wrap-weekly" style="display:none">
+        <div class="drop-label">Weekly</div>
+        <div class="drop" id="drop-weekly">
+          <input type="file" id="file-weekly" accept="image/*" hidden>
+          <button class="clear" id="clear-weekly">×</button>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16M14 14l1.6-1.6a2 2 0 012.8 0L21 15M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="9.5" r="1.5"/></svg>
+          <div class="big">Weekly chart</div>
+          <div class="small">macro context</div>
+        </div>
+      </div>
+    </div>
+
     <button class="go" id="go" disabled>Analyze chart</button>
     <div class="quota" id="quota"></div>
     <div class="disc">
@@ -123,83 +183,134 @@
 
   <div class="status" id="status"></div>
   <div class="result" id="result"></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="history" id="history" style="display:none">
+    <div class="hist-head">
+      <div class="hist-title">Recent analyses</div>
+      <button class="hist-clear" onclick="clearHistory()">Clear all</button>
+    </div>
+    <div class="hist-list" id="hist-list"></div>
+  </div>
 </div>
 
 <script>
 const $=s=>document.querySelector(s);
-const drop=$('#drop'),fileInput=$('#file'),clearBtn=$('#clear'),go=$('#go');
-const statusEl=$('#status'),resultEl=$('#result'),quotaEl=$('#quota');
-let imgData=null,imgMime=null;
+const go=$('#go'),statusEl=$('#status'),resultEl=$('#result'),quotaEl=$('#quota'),toastEl=$('#toast');
+let mode='single';
+const state={daily:{data:null,mime:null},weekly:{data:null,mime:null}};
+let currentResult=null;
 
-function downscale(file,maxDim=1600,quality=0.85){
-  return new Promise((resolve,reject)=>{
-    const url=URL.createObjectURL(file);
-    const im=new Image();
-    im.onload=()=>{
-      let{width:w,height:h}=im;
-      const scale=Math.min(1,maxDim/Math.max(w,h));
-      w=Math.round(w*scale);h=Math.round(h*scale);
-      const c=document.createElement('canvas');c.width=w;c.height=h;
-      c.getContext('2d').drawImage(im,0,0,w,h);
-      URL.revokeObjectURL(url);
-      resolve({dataUrl:c.toDataURL('image/jpeg',quality),mime:'image/jpeg'});
-    };
-    im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image'))};
-    im.src=url;
-  });
+// --- MODE ---
+function setMode(m){
+  mode=m;
+  $('#mode-single').classList.toggle('active',m==='single');
+  $('#mode-dual').classList.toggle('active',m==='dual');
+  $('#wrap-weekly').style.display=m==='dual'?'':'none';
+  $('#label-daily').textContent=m==='dual'?'Daily':'Chart';
+  updateGo();
 }
-async function handleFile(file){
-  if(!file||!file.type.startsWith('image/'))return;
-  try{
-    const{dataUrl,mime}=await downscale(file);
-    imgData=dataUrl.split(',')[1];imgMime=mime;
-    drop.classList.add('has');
-    let p=drop.querySelector('img');if(!p){p=document.createElement('img');drop.appendChild(p);}
-    p.src=dataUrl;go.disabled=false;
-  }catch(e){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+e.message+'</span>';}
+function updateGo(){
+  const ok=state.daily.data&&(mode==='single'||state.weekly.data);
+  go.disabled=!ok;
 }
-function clearImage(){imgData=null;imgMime=null;drop.classList.remove('has');const p=drop.querySelector('img');if(p)p.remove();fileInput.value='';go.disabled=true;}
 
-drop.addEventListener('click',e=>{if(e.target===clearBtn)return;fileInput.click();});
-fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
-clearBtn.addEventListener('click',e=>{e.stopPropagation();clearImage();});
-drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
-drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
-drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');handleFile(e.dataTransfer.files[0])});
-window.addEventListener('paste',e=>{for(const it of e.clipboardData.items){if(it.type.startsWith('image/')){handleFile(it.getAsFile());break;}}});
-
-go.addEventListener('click',analyze);
-
-async function analyze(){
-  if(!imgData)return;
-  go.disabled=true;resultEl.classList.remove('show');
-  statusEl.className='status show';statusEl.innerHTML='<span class="spin"></span>Reading the chart…';
-  try{
-    const res=await fetch('/api/analyze',{
-      method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({image:imgData,mime:imgMime,ticker:$('#ticker').value.trim(),tf:$('#tf').value.trim(),ohlc:$('#ohlc').value.trim()})
+// --- DROP ZONES ---
+function setupDrop(id,key){
+  const drop=$('#drop-'+id),fileInput=$('#file-'+id),clearBtn=$('#clear-'+id);
+  function downscale(file){
+    return new Promise((resolve,reject)=>{
+      const url=URL.createObjectURL(file);
+      const im=new Image();
+      im.onload=()=>{
+        let{width:w,height:h}=im;
+        const scale=Math.min(1,1600/Math.max(w,h));
+        w=Math.round(w*scale);h=Math.round(h*scale);
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(im,0,0,w,h);
+        URL.revokeObjectURL(url);
+        resolve({dataUrl:c.toDataURL('image/jpeg',.85),mime:'image/jpeg'});
+      };
+      im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image'))};
+      im.src=url;
     });
+  }
+  async function handleFile(file){
+    if(!file||!file.type.startsWith('image/'))return;
+    try{
+      const{dataUrl,mime}=await downscale(file);
+      state[key]={data:dataUrl.split(',')[1],mime};
+      drop.classList.add('has');
+      let p=drop.querySelector('img');if(!p){p=document.createElement('img');drop.appendChild(p);}
+      p.src=dataUrl; updateGo();
+    }catch(e){showStatus('<span class="err">'+e.message+'</span>');}
+  }
+  function clearDrop(){state[key]={data:null,mime:null};drop.classList.remove('has');const p=drop.querySelector('img');if(p)p.remove();fileInput.value='';updateGo();}
+  drop.addEventListener('click',e=>{if(e.target===clearBtn)return;fileInput.click();});
+  fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+  clearBtn.addEventListener('click',e=>{e.stopPropagation();clearDrop();});
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');handleFile(e.dataTransfer.files[0])});
+  return{handleFile};
+}
+const dailyDrop=setupDrop('daily','daily');
+const weeklyDrop=setupDrop('weekly','weekly');
+window.addEventListener('paste',e=>{
+  for(const it of e.clipboardData.items){
+    if(it.type.startsWith('image/')){
+      if(mode==='dual'&&!state.weekly.data) weeklyDrop.handleFile(it.getAsFile());
+      else dailyDrop.handleFile(it.getAsFile());
+      break;
+    }
+  }
+});
+
+// --- ANALYZE ---
+function showStatus(html){statusEl.className='status show';statusEl.innerHTML=html;}
+go.addEventListener('click',analyze);
+async function analyze(){
+  if(!state.daily.data)return;
+  go.disabled=true;resultEl.classList.remove('show');
+  showStatus('<span class="spin"></span>Reading the chart…');
+  try{
+    const body={image:state.daily.data,mime:state.daily.mime,ticker:$('#ticker').value.trim(),tf:$('#tf').value.trim(),ohlc:$('#ohlc').value.trim()};
+    if(mode==='dual'&&state.weekly.data){body.imageWeekly=state.weekly.data;body.mimeWeekly=state.weekly.mime;}
+    const res=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
-    if(res.status===429){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||'Limit reached.')+'</span>';go.disabled=false;return;}
-    if(!res.ok||!data.result){statusEl.className='status show';statusEl.innerHTML='<span class="err">'+(data.error||"Couldn't read this chart. Try a clearer screenshot, or paste the OHLC/levels.")+'</span>';go.disabled=false;return;}
-    if(typeof data.used==='number'&&typeof data.cap==='number'){quotaEl.textContent=Math.max(0,data.cap-data.used)+' free analyses left today';}
-    statusEl.className='status';render(data.result);
-  }catch(err){statusEl.className='status show';statusEl.innerHTML='<span class="err">Network error. Try again.</span>';}
+    if(res.status===429){showStatus('<span class="err">'+(data.error||'Limit reached.')+'</span>');go.disabled=false;return;}
+    if(!res.ok||!data.result){showStatus('<span class="err">'+(data.error||"Couldn't read this chart. Try a clearer screenshot, or paste OHLC/levels.")+'</span>');go.disabled=false;return;}
+    if(typeof data.used==='number'&&typeof data.cap==='number')quotaEl.textContent=Math.max(0,data.cap-data.used)+' free analyses left today';
+    statusEl.className='status';
+    currentResult=data.result;
+    saveHistory(data.result);
+    render(data.result,data.dual);
+  }catch(err){showStatus('<span class="err">Network error. Try again.</span>');}
   go.disabled=false;
 }
 
+// --- RENDER ---
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
-function render(d){
+function render(d,dual){
   const dec=(d.decision||'').toUpperCase();
   const pc=dec.includes('BUY')?'buy':dec.includes('WAIT')?'wait':'avoid';
   const o=d.ohlc||{},lows=(d.last5lows||[]).filter(Boolean);
   const tgts=(d.targets||[]).filter(t=>t&&(t.price||t.pct)),warns=(d.warnings||[]).filter(Boolean);
   let h='';
-  h+=`<div class="verdict"><div><div class="vhead">${esc(d.ticker||'—')}${d.timeframe?' · '+esc(d.timeframe):''}${d.setup_type?' · '+esc(d.setup_type):''}</div><div class="vnote">${esc(d.decision_note||dec)}</div></div><div class="pill ${pc}">${esc(dec||'—')}</div></div>`;
-  h+=`<div class="plan"><div class="planrow"><span class="pl">Entry</span><span class="pv">${esc(d.entry||'—')}</span></div><div class="planrow"><span class="pl">Stop</span><span class="pv stop">${esc(d.stop||'—')}</span></div>${d.risk?`<div class="planrow"><span class="pl">Risk</span><span class="pv stop">${esc(d.risk)}</span></div>`:''}`;
+
+  // share button
+  h+=`<div class="share-row"><button class="share-btn" onclick="shareResult()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke-linecap="round" stroke-linejoin="round"/></svg>Share to X</button></div>`;
+
+  h+=`<div class="verdict"><div>`;
+  if(dual)h+=`<span class="macro-badge">Weekly + Daily</span><br>`;
+  h+=`<div class="vhead">${esc(d.ticker||'—')}${d.timeframe?' · '+esc(d.timeframe):''}${d.setup_type?' · '+esc(d.setup_type):''}</div><div class="vnote">${esc(d.decision_note||dec)}</div></div><div class="pill ${pc}">${esc(dec||'—')}</div></div>`;
+
+  h+=`<div class="plan"><div class="planrow"><span class="pl">Entry</span><span class="pv">${esc(d.entry||'—')}</span></div><div class="planrow"><span class="pl">Stop</span><span class="pv stop">${esc(d.stop||'—')}</span></div>${d.risk?`<div class="planrow"><span class="pl">Risk</span><span class="pv risk">${esc(d.risk)}</span></div>`:''}`;
   if(tgts.length){h+=`<div class="tgts">`;tgts.forEach(t=>{h+=`<div class="tgtline"><span>${esc(t.label)} ${esc(t.price)}</span><span class="pct">${esc(t.pct)}</span></div>`});h+=`</div>`;}
   h+=`</div>`;
+
   h+='<div class="cards">';
+  if(dual&&d.macro_context)h+=`<div class="card"><div class="ctitle">Weekly macro</div><div class="cbody">${esc(d.macro_context)}</div></div>`;
   if(d.active_wave)h+=`<div class="card"><div class="ctitle">Wave status</div><div class="cbody">${esc(d.active_wave)}</div></div>`;
   if(d.waves)h+=`<div class="card"><div class="ctitle">Wave map</div><div class="wave">${esc(d.waves)}</div></div>`;
   if(d.fib_ladder)h+=`<div class="card"><div class="ctitle">Fib ladder</div><div class="wave">${esc(d.fib_ladder)}</div></div>`;
@@ -208,14 +319,70 @@ function render(d){
   if(d.subwave)h+=`<div class="card"><div class="ctitle">Sub-wave</div><div class="cbody">${esc(d.subwave)}</div></div>`;
   h+=`</div>`;
   if(d.stop_reason||d.volume){h+=`<div class="two">`;if(d.volume)h+=`<div class="card"><div class="ctitle">Volume</div><div class="cbody">${esc(d.volume)}</div></div>`;if(d.stop_reason)h+=`<div class="card"><div class="ctitle">Stop logic</div><div class="cbody">${esc(d.stop_reason)}</div></div>`;h+=`</div>`;}
-  if(o.close||o.open){h+=`<div class="card"><div class="ctitle">Latest candle</div><div class="strip"><span>O ${esc(o.open)}</span><span>H ${esc(o.high)}</span><span>L ${esc(o.low)}</span><span>C ${esc(o.close)}</span>${o.change?`<span>Δ ${esc(o.change)}</span>`:''}</div></div>`;}
-  if(lows.length){h+=`<div class="card"><div class="ctitle">Last 5 lows · SSL ${esc(d.ssl_test||'')}</div><div class="strip">${lows.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`;}
-  if(warns.length){h+=`<div class="warnbox"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3z" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke-linecap="round"/></svg><div><b>Image gaps:</b> ${warns.map(esc).join(' · ')}</div></div>`;}
+  if(o.close||o.open)h+=`<div class="card"><div class="ctitle">Latest candle</div><div class="strip"><span>O ${esc(o.open)}</span><span>H ${esc(o.high)}</span><span>L ${esc(o.low)}</span><span>C ${esc(o.close)}</span>${o.change?`<span>Δ ${esc(o.change)}</span>`:''}</div></div>`;
+  if(lows.length)h+=`<div class="card"><div class="ctitle">Last 5 lows · SSL ${esc(d.ssl_test||'')}</div><div class="strip">${lows.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`;
+  if(warns.length)h+=`<div class="warnbox"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3z" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke-linecap="round"/></svg><div><b>Image gaps:</b> ${warns.map(esc).join(' · ')}</div></div>`;
   h+='</div>';
-  resultEl.innerHTML=h;resultEl.classList.add('show');resultEl.scrollIntoView({behavior:'smooth',block:'start'});
+
+  resultEl.innerHTML=h;resultEl.classList.add('show');
+  resultEl.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}
+// --- SHARE ---
+function shareResult(){
+  if(!currentResult)return;
+  const d=currentResult;
+  const dec=(d.decision||'').toUpperCase();
+  const emoji=dec==='BUY'?'🟢':dec==='WAIT'?'🟡':'🔴';
+  const tgts=(d.targets||[]).filter(t=>t.pct).map(t=>`${t.label} ${t.price} (${t.pct})`).join(' · ');
+  const text=`${emoji} $${d.ticker||'—'} ${d.timeframe||''} — ${dec}\n\nEntry: ${d.entry||'—'}\nStop: ${d.stop||'—'}${d.risk?' ('+d.risk+')':''}\n${tgts?'Targets: '+tgts+'\n':''}\n${d.decision_note||''}\n\nAnalyzed with WaveRead → waveread.vercel.app\n#trading #elliottwave #wyckoff`;
+  const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(text);
+  window.open(url,'_blank','noopener');
+  showToast('Opening X…');
+}
+
+// --- TOAST ---
+function showToast(msg){
+  toastEl.textContent=msg;toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'),2200);
+}
+
+// --- HISTORY ---
+const HIST_KEY='waveread_history';
+function loadHistory(){return JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}
+function saveHistory(result){
+  const hist=loadHistory();
+  hist.unshift({ticker:result.ticker,timeframe:result.timeframe,decision:result.decision,decision_note:result.decision_note,entry:result.entry,stop:result.stop,targets:result.targets,date:new Date().toISOString(),result});
+  if(hist.length>10)hist.length=10;
+  localStorage.setItem(HIST_KEY,JSON.stringify(hist));
+  renderHistory();
+}
+function clearHistory(){localStorage.removeItem(HIST_KEY);renderHistory();}
+function renderHistory(){
+  const hist=loadHistory();
+  const el=$('#history'),list=$('#hist-list');
+  if(!hist.length){el.style.display='none';return;}
+  el.style.display='block';
+  list.innerHTML=hist.map((h,i)=>{
+    const dec=(h.decision||'').toUpperCase();
+    const pc=dec.includes('BUY')?'buy':dec.includes('WAIT')?'wait':'avoid';
+    const date=new Date(h.date).toLocaleDateString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="hist-item" onclick="loadFromHistory(${i})">
+      <div class="hist-left"><div class="hist-ticker">$${esc(h.ticker||'—')} ${esc(h.timeframe||'')}</div><div class="hist-note">${esc(h.decision_note||'')}</div></div>
+      <div class="hist-right"><span class="pill ${pc}" style="font-size:11px;padding:4px 9px">${esc(dec)}</span><div class="hist-date">${date}</div></div>
+    </div>`;
+  }).join('');
+}
+function loadFromHistory(i){
+  const hist=loadHistory();
+  if(!hist[i])return;
+  currentResult=hist[i].result;
+  render(hist[i].result,false);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+renderHistory();
+
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
