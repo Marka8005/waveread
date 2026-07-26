@@ -149,6 +149,7 @@ textarea{resize:vertical;min-height:58px;line-height:1.5}
       <button class="mode-btn active" id="mode-single" onclick="setMode('single')">Single chart</button>
       <button class="mode-btn" id="mode-dual" onclick="setMode('dual')">Weekly + Daily</button>
     </div>
+    <div id="paste-hint" style="display:none;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center">Paste daily first → then paste weekly &nbsp;·&nbsp; or tap each zone to pick from files</div>
 
     <div class="drops" id="drops">
       <div class="drop-wrap" id="wrap-daily">
@@ -208,6 +209,7 @@ function setMode(m){
   $('#mode-dual').classList.toggle('active',m==='dual');
   $('#wrap-weekly').style.display=m==='dual'?'':'none';
   $('#label-daily').textContent=m==='dual'?'Daily':'Chart';
+  $('#paste-hint').style.display=m==='dual'?'block':'none';
   updateGo();
 }
 function updateGo(){
@@ -259,7 +261,8 @@ const weeklyDrop=setupDrop('weekly','weekly');
 window.addEventListener('paste',e=>{
   for(const it of e.clipboardData.items){
     if(it.type.startsWith('image/')){
-      if(mode==='dual'&&!state.weekly.data) weeklyDrop.handleFile(it.getAsFile());
+      // Daily always gets filled first. Weekly only after daily is already set.
+      if(mode==='dual'&&state.daily.data&&!state.weekly.data) weeklyDrop.handleFile(it.getAsFile());
       else dailyDrop.handleFile(it.getAsFile());
       break;
     }
