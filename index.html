@@ -347,7 +347,7 @@ function drawWaveChart(d){
   const canvas=document.getElementById('wvchart');
   if(!canvas)return;
   const dpr=window.devicePixelRatio||1;
-  const W=canvas.offsetWidth||680, H=220;
+  const W=canvas.offsetWidth||680, H=260;
   canvas.width=W*dpr; canvas.height=H*dpr;
   const ctx2=canvas.getContext('2d');
   ctx2.scale(dpr,dpr);
@@ -355,115 +355,164 @@ function drawWaveChart(d){
   const pts=(d.wave_points||[]).filter(p=>p&&p.price!=null);
   if(pts.length<2)return;
 
-  const accent='#3DE0A0', warn='#F5B544', danger='#FF6B6B', muted='#8B93A3', faint='#5A6273', panel='#12151C', line='#232834', text='#E6E9EF';
-  const PAD={t:28,b:36,l:52,r:24};
+  const dec=(d.decision||'').toUpperCase();
+  const accentHex='#3DE0A0', warnHex='#F5B544', dangerHex='#FF6B6B';
+  const accentColor=dec==='BUY'?accentHex:dec==='WAIT'?warnHex:dangerHex;
+  const PAD={t:44,b:52,l:56,r:20};
   const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 
-  // gather all price values: wave points + fib levels
-  const allPrices=pts.map(p=>p.price);
-  const lo2=d.swing_low!=null?parseFloat(d.swing_low):null;
-  const hi2=d.swing_high!=null?parseFloat(d.swing_high):null;
-  if(lo2!=null)allPrices.push(lo2);
-  if(hi2!=null)allPrices.push(hi2);
-
-  const minP=Math.min(...allPrices)*0.96, maxP=Math.max(...allPrices)*1.04;
+  // price range including entry, stop, targets
+  const allP=[...pts.map(p=>p.price)];
+  const ep=parseFloat((d.entry||'').replace(/[^0-9.]/g,''));
+  const sp=parseFloat(d.stop||'');
+  const tps=(d.targets||[]).map(t=>parseFloat(t.price)).filter(v=>!isNaN(v));
+  if(!isNaN(ep))allP.push(ep);
+  if(!isNaN(sp))allP.push(sp);
+  allP.push(...tps);
+  const minP=Math.min(...allP)*0.94, maxP=Math.max(...allP)*1.06;
   const range=maxP-minP||1;
-  function px(price){return PAD.t+cH-(((price-minP)/range)*cH);}
-  function tx(i){return PAD.l+(i/(pts.length-1))*cW;}
+  function py(price){return PAD.t+cH-(((price-minP)/range)*cH);}
+  function px2(i,total){return PAD.l+(i/(total-1))*cW;}
 
-  // background
-  ctx2.fillStyle=panel; ctx2.beginPath(); ctx2.roundRect(0,0,W,H,12); ctx2.fill();
+  // --- BACKGROUND ---
+  ctx2.fillStyle='#0A0C10';
+  ctx2.beginPath(); ctx2.roundRect(0,0,W,H,14); ctx2.fill();
 
-  // fib lines
-  const fibLevels=lo2!=null&&hi2!=null?[
-    {p:38.2,c:'rgba(61,224,160,.25)'},
-    {p:50,c:'rgba(61,224,160,.2)'},
-    {p:61.8,c:'rgba(61,224,160,.35)'},
-    {p:78.6,c:'rgba(61,224,160,.2)'},
-  ]:[];
-  fibLevels.forEach(({p,c})=>{
-    const price=hi2-(p/100)*(hi2-lo2);
-    const y=px(price);
-    ctx2.strokeStyle=c; ctx2.lineWidth=1; ctx2.setLineDash([4,4]);
+  // subtle grid lines
+  for(let i=0;i<=4;i++){
+    const price=minP+(i/4)*range;
+    const y=py(price);
+    ctx2.strokeStyle='rgba(35,40,52,0.8)'; ctx2.lineWidth=1; ctx2.setLineDash([]);
+    ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+    ctx2.fillStyle='#5A6273'; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
+    ctx2.fillText(price<10?price.toFixed(2):price.toFixed(0),PAD.l-6,y+3.5);
+  }
+  ctx2.textAlign='left';
+
+  // --- ENTRY ZONE ---
+  if(!isNaN(ep)){
+    const y=py(ep);
+    ctx2.fillStyle='rgba(61,224,160,.06)';
+    ctx2.fillRect(PAD.l,y-1,cW,py(!isNaN(sp)?sp:ep*0.9)-y+1);
+    ctx2.strokeStyle='rgba(61,224,160,.7)'; ctx2.lineWidth=1.5; ctx2.setLineDash([6,4]);
     ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
     ctx2.setLineDash([]);
-    ctx2.fillStyle='rgba(61,224,160,.7)'; ctx2.font='10px IBM Plex Mono,monospace';
-    ctx2.fillText(p+'%',PAD.l+cW+2,y+3.5);
+    // label
+    ctx2.fillStyle='#0A0C10'; ctx2.fillRect(PAD.l+6,y-13,52,14);
+    ctx2.fillStyle=accentHex; ctx2.font='bold 10px IBM Plex Mono,monospace';
+    ctx2.fillText('ENTRY '+ep.toFixed(2),PAD.l+8,y-2);
+  }
+
+  // --- STOP LINE ---
+  if(!isNaN(sp)){
+    const y=py(sp);
+    ctx2.strokeStyle='rgba(255,107,107,.6)'; ctx2.lineWidth=1; ctx2.setLineDash([4,4]);
+    ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+    ctx2.setLineDash([]);
+    ctx2.fillStyle='#0A0C10'; ctx2.fillRect(PAD.l+6,y+1,42,13);
+    ctx2.fillStyle=dangerHex; ctx2.font='9px IBM Plex Mono,monospace';
+    ctx2.fillText('STOP '+sp.toFixed(2),PAD.l+8,y+11);
+  }
+
+  // --- TARGET lines (faint) ---
+  tps.slice(0,3).forEach((tp,i)=>{
+    const y=py(tp);
+    ctx2.strokeStyle='rgba(61,224,160,.2)'; ctx2.lineWidth=1; ctx2.setLineDash([2,6]);
+    ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+    ctx2.setLineDash([]);
+    ctx2.fillStyle='rgba(61,224,160,.5)'; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
+    ctx2.fillText('T'+(i+1),PAD.l+cW+2,y+3.5);
+    ctx2.textAlign='left';
   });
 
-  // entry line
-  if(d.entry&&d.entry!=='No confirmed entry'){
-    const ep=parseFloat((d.entry||'').replace(/[^0-9.]/g,''));
-    if(!isNaN(ep)){
-      const y=px(ep);
-      ctx2.strokeStyle='rgba(61,224,160,.9)'; ctx2.lineWidth=1.5; ctx2.setLineDash([6,3]);
-      ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
-      ctx2.setLineDash([]);
-      ctx2.fillStyle=accent; ctx2.font='bold 10px IBM Plex Mono,monospace';
-      ctx2.fillText('ENTRY',PAD.l+4,y-4);
-    }
-  }
-
-  // stop line
-  if(d.stop&&d.stop!=='—'){
-    const sp=parseFloat(d.stop);
-    if(!isNaN(sp)){
-      const y=px(sp);
-      ctx2.strokeStyle='rgba(255,107,107,.7)'; ctx2.lineWidth=1; ctx2.setLineDash([3,3]);
-      ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
-      ctx2.setLineDash([]);
-      ctx2.fillStyle=danger; ctx2.font='10px IBM Plex Mono,monospace';
-      ctx2.fillText('STOP',PAD.l+4,y-3);
-    }
-  }
-
-  // wave path
-  ctx2.strokeStyle=accent; ctx2.lineWidth=2.5; ctx2.lineJoin='round'; ctx2.lineCap='round';
-  ctx2.beginPath();
-  pts.forEach((p,i)=>{i===0?ctx2.moveTo(tx(i),px(p.price)):ctx2.lineTo(tx(i),px(p.price));});
-  ctx2.stroke();
-
-  // wave nodes + labels
+  // --- SPLIT CONFIRMED vs FUTURE waves ---
+  // Find "current" point — last confirmed wave, future from there
+  const currentLabel=(d.active_wave||'').match(/W(\d)/i);
+  const currentWaveNum=currentLabel?parseInt(currentLabel[1]):null;
+  // find split index: last point that is a confirmed wave
+  let splitIdx=pts.length-1;
   pts.forEach((p,i)=>{
-    const x=tx(i), y=px(p.price);
-    const isEntry=d.entry&&(d.entry||'').includes(p.label);
-    ctx2.fillStyle=isEntry?accent:(p.label==='SC'?warn:accent);
-    ctx2.beginPath(); ctx2.arc(x,y,4,0,Math.PI*2); ctx2.fill();
-    ctx2.fillStyle=panel; ctx2.beginPath(); ctx2.arc(x,y,2,0,Math.PI*2); ctx2.fill();
+    const m=(p.label||'').match(/W(\d)/i);
+    if(m&&currentWaveNum&&parseInt(m[1])>currentWaveNum) splitIdx=Math.min(splitIdx,i-1);
+  });
 
-    // label above/below alternating
-    ctx2.fillStyle=text; ctx2.font='bold 11px Space Grotesk,system-ui,sans-serif';
-    ctx2.textAlign='center';
+  // confirmed wave path (solid)
+  if(splitIdx>0){
+    const grad=ctx2.createLinearGradient(PAD.l,0,PAD.l+cW*(splitIdx/(pts.length-1)),0);
+    grad.addColorStop(0,'rgba(61,224,160,.4)');
+    grad.addColorStop(1,accentHex);
+    ctx2.strokeStyle=grad; ctx2.lineWidth=2.5; ctx2.lineJoin='round'; ctx2.lineCap='round'; ctx2.setLineDash([]);
+    ctx2.beginPath();
+    pts.slice(0,splitIdx+1).forEach((p,i)=>{
+      const x=px2(i,pts.length), y=py(p.price);
+      i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);
+    });
+    ctx2.stroke();
+  }
+
+  // future wave path (dashed, faint)
+  if(splitIdx<pts.length-1){
+    ctx2.strokeStyle='rgba(61,224,160,.4)'; ctx2.lineWidth=2; ctx2.setLineDash([5,5]);
+    ctx2.beginPath();
+    pts.slice(splitIdx).forEach((p,i)=>{
+      const x=px2(splitIdx+i,pts.length), y=py(p.price);
+      i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);
+    });
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+
+  // --- NODES ---
+  pts.forEach((p,i)=>{
+    const x=px2(i,pts.length), y=py(p.price);
+    const isFuture=i>splitIdx;
+    const isCurrent=i===splitIdx;
+
+    // node dot
+    ctx2.fillStyle=isFuture?'rgba(61,224,160,.35)':(isCurrent?accentHex:'#12151C');
+    ctx2.strokeStyle=isFuture?'rgba(61,224,160,.5)':accentHex;
+    ctx2.lineWidth=isCurrent?2.5:1.5; ctx2.setLineDash([]);
+    ctx2.beginPath(); ctx2.arc(x,y,isCurrent?5:3.5,0,Math.PI*2);
+    ctx2.fill(); ctx2.stroke();
+
+    // "NOW" pulse ring on current node
+    if(isCurrent){
+      ctx2.strokeStyle='rgba(61,224,160,.3)'; ctx2.lineWidth=1.5;
+      ctx2.beginPath(); ctx2.arc(x,y,9,0,Math.PI*2); ctx2.stroke();
+    }
+
+    // label: above odd, below even — offset further to avoid overlap
     const above=i%2===0;
-    ctx2.fillText(p.label,x,above?y-10:y+18);
-    ctx2.fillStyle=muted; ctx2.font='10px IBM Plex Mono,monospace';
-    ctx2.fillText(p.price,x,above?y-22:y+28);
+    const lx=x, ly=above?y-16:y+14;
+    ctx2.fillStyle=isFuture?'rgba(230,233,239,.4)':'#E6E9EF';
+    ctx2.font=`bold ${isCurrent?12:10}px Space Grotesk,system-ui,sans-serif`;
+    ctx2.textAlign='center';
+    ctx2.fillText(p.label,lx,ly);
+    ctx2.fillStyle=isFuture?'rgba(139,147,163,.4)':'#8B93A3';
+    ctx2.font='9px IBM Plex Mono,monospace';
+    ctx2.fillText(typeof p.price==='number'?p.price.toFixed(p.price<10?2:0):p.price,lx,above?ly-11:ly+11);
     ctx2.textAlign='left';
   });
 
-  // price axis (left)
-  const steps=4;
-  for(let i=0;i<=steps;i++){
-    const price=minP+(i/steps)*range;
-    const y=px(price);
-    ctx2.strokeStyle=line; ctx2.lineWidth=1;
-    ctx2.beginPath(); ctx2.moveTo(PAD.l-4,y); ctx2.lineTo(PAD.l,y); ctx2.stroke();
-    ctx2.fillStyle=faint; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
-    ctx2.fillText(price.toFixed(price<10?2:0),PAD.l-6,y+3);
-    ctx2.textAlign='left';
-  }
+  // --- HEADER BAR ---
+  // ticker + timeframe left
+  ctx2.fillStyle='#E6E9EF'; ctx2.font='bold 13px Space Grotesk,system-ui,sans-serif';
+  ctx2.fillText('$'+(d.ticker||'—')+(d.timeframe?' · '+d.timeframe:''),PAD.l,22);
 
-  // ticker + decision badge
-  const dec=(d.decision||'').toUpperCase();
-  const badgeColor=dec==='BUY'?accent:dec==='WAIT'?warn:danger;
-  ctx2.font='bold 13px Space Grotesk,system-ui,sans-serif'; ctx2.fillStyle=text;
-  ctx2.fillText('$'+(d.ticker||'—')+' · WaveRead',PAD.l,PAD.t-10);
-  const badgeW=50, badgeH=18;
-  const bx=W-PAD.r-badgeW, by=PAD.t-18;
-  ctx2.fillStyle=badgeColor+'22'; ctx2.beginPath(); ctx2.roundRect(bx,by,badgeW,badgeH,5); ctx2.fill();
-  ctx2.strokeStyle=badgeColor; ctx2.lineWidth=1; ctx2.beginPath(); ctx2.roundRect(bx,by,badgeW,badgeH,5); ctx2.stroke();
-  ctx2.fillStyle=badgeColor; ctx2.font='bold 11px IBM Plex Mono,monospace'; ctx2.textAlign='center';
-  ctx2.fillText(dec,bx+badgeW/2,by+13); ctx2.textAlign='left';
+  // decision pill right
+  const pillW=56, pillH=20, pillX=W-PAD.r-pillW, pillY=8;
+  ctx2.fillStyle=accentColor+'22';
+  ctx2.beginPath(); ctx2.roundRect(pillX,pillY,pillW,pillH,6); ctx2.fill();
+  ctx2.strokeStyle=accentColor; ctx2.lineWidth=1;
+  ctx2.beginPath(); ctx2.roundRect(pillX,pillY,pillW,pillH,6); ctx2.stroke();
+  ctx2.fillStyle=accentColor; ctx2.font='bold 11px IBM Plex Mono,monospace'; ctx2.textAlign='center';
+  ctx2.fillText(dec,pillX+pillW/2,pillY+14); ctx2.textAlign='left';
+
+  // --- FOOTER: waveread.vercel.app ---
+  ctx2.fillStyle='rgba(90,98,115,.7)'; ctx2.font='10px IBM Plex Mono,monospace';
+  ctx2.textAlign='center';
+  ctx2.fillText('waveread.vercel.app',W/2,H-10);
+  ctx2.textAlign='left';
 }
 
 function downloadChart(){
@@ -482,11 +531,25 @@ function shareResult(){
   const d=currentResult;
   const dec=(d.decision||'').toUpperCase();
   const emoji=dec==='BUY'?'🟢':dec==='WAIT'?'🟡':'🔴';
-  const tgts=(d.targets||[]).filter(t=>t.pct).map(t=>`${t.label} ${t.price} (${t.pct})`).join(' · ');
-  const text=`${emoji} $${d.ticker||'—'} ${d.timeframe||''} — ${dec}\n\nEntry: ${d.entry||'—'}\nStop: ${d.stop||'—'}${d.risk?' ('+d.risk+')':''}\n${tgts?'Targets: '+tgts+'\n':''}\n${d.decision_note||''}\n\nAnalyzed with WaveRead → waveread.vercel.app\n#trading #elliottwave #wyckoff`;
+  // Short punchy tweet — chart image handles the detail
+  const entry=d.entry?d.entry.split('·')[0].trim():'—';
+  const stop=d.stop||'—';
+  const t1=d.targets&&d.targets[0]?`T1 ${d.targets[0].price} (${d.targets[0].pct})`:'';
+  const text=`${emoji} $${d.ticker||'—'} — ${dec}\n\nEntry: ${entry}  Stop: ${stop}\n${t1}\n\n${d.decision_note||''}\n\nFull wave plan → waveread.vercel.app\n#trading #elliottwave #wyckoff`;
   const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(text);
-  window.open(url,'_blank','noopener');
-  showToast('Opening X…');
+  // Download chart first, then open X
+  const canvas=document.getElementById('wvchart');
+  if(canvas){
+    const link=document.createElement('a');
+    link.download='waveread-'+(d.ticker||'chart')+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+    showToast('Chart saved — attach it to your X post!');
+    setTimeout(()=>window.open(url,'_blank','noopener'),600);
+  } else {
+    window.open(url,'_blank','noopener');
+    showToast('Opening X…');
+  }
 }
 
 // --- TOAST ---
