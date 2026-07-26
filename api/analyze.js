@@ -10,6 +10,15 @@ Method:
 3. Wyckoff phase (note SC/spring if seen).
 4. Count waves W1->W5 from the SC low, left->right.
 
+CHART CALIBRATION (required — the app draws your analysis onto the user's own chart image):
+Look at the DAILY chart image and report chart_calibration:
+- top_price / bottom_price: the price values at the very top and very bottom of the PRICE plot area (use the axis labels; extrapolate to the actual edges).
+- plot_top_pct / plot_bottom_pct: where the price plot area starts and ends vertically, as fractions of total image height. plot_bottom_pct must be ABOVE the volume bars panel — the price area only.
+- plot_left_pct / plot_right_pct: where the plot area starts and ends horizontally (plot_right_pct = where the price axis labels begin).
+Be as accurate as you can — these fractions position every line that gets drawn.
+
+For each wave_point also give x_pct: its horizontal position within the plot area (0=left edge, 1=right edge), matching where that pivot actually sits in time on the chart. For projected/not-yet-formed waves, set projected:true and place x_pct to the right of the last real pivot (up to 1.0).
+
 ELLIOTT WAVE RULES — check ALL before reporting:
 ABSOLUTE (never break):
 - W2 must NOT retrace more than 100% of W1 (w2_end must be above w1_start for a bull move)
@@ -84,7 +93,15 @@ const TOOL = {
       decision: { type: 'string', enum: ['BUY','WAIT','AVOID'] },
       decision_note: { type: 'string', description: 'Short action sentence, no level numbers' },
       warnings: { type: 'array', items: { type: 'string' } },
-      wave_points: { type: 'array', description: 'Key price points for wave chart: [{label:"SC",price:0.55},{label:"W1",price:2.50},...]', items: { type: 'object', properties: { label:{type:'string'}, price:{type:'number'} } } },
+      wave_points: { type: 'array', description: 'Wave pivots in order, each with the label, its price, and x_pct = its horizontal position in the chart plot area (0 = left edge, 1 = right edge). Projected/future waves get x_pct beyond the last real pivot.', items: { type: 'object', properties: { label:{type:'string'}, price:{type:'number'}, x_pct:{type:'number'}, projected:{type:'boolean'} } } },
+      chart_calibration: { type: 'object', description: 'Maps the DAILY image to prices so the app can draw lines on it. Read the price axis and the plot area edges.', properties: {
+        top_price: { type:'number', description:'Price value at the TOP edge of the plot area' },
+        bottom_price: { type:'number', description:'Price value at the BOTTOM edge of the plot area' },
+        plot_top_pct: { type:'number', description:'Top edge of plot area as fraction of image height (0-1)' },
+        plot_bottom_pct: { type:'number', description:'Bottom edge of the price plot area (above the volume panel) as fraction of image height (0-1)' },
+        plot_left_pct: { type:'number', description:'Left edge of plot area as fraction of image width (0-1)' },
+        plot_right_pct: { type:'number', description:'Right edge of plot area (where the price axis starts) as fraction of image width (0-1)' }
+      } },
       w1_start: { type: 'number', description: 'W1 start price (SC low)' },
       w1_end: { type: 'number', description: 'W1 end price (W1 top)' },
       w2_end: { type: 'number', description: 'W2 end price (W2 bottom)' },
@@ -218,7 +235,7 @@ function compute(input) {
   if(ew_warnings.length) warnings.unshift(...ew_warnings);
 
     return {
-    ticker:input.ticker, timeframe:input.timeframe, macro_context:input.macro_context, wave_points:input.wave_points, w1_start:input.w1_start, w1_end:input.w1_end, w2_end:input.w2_end, w3_end:input.w3_end, w4_end:input.w4_end, w5_end:input.w5_end,
+    ticker:input.ticker, timeframe:input.timeframe, macro_context:input.macro_context, wave_points:input.wave_points, chart_calibration:input.chart_calibration, w1_start:input.w1_start, w1_end:input.w1_end, w2_end:input.w2_end, w3_end:input.w3_end, w4_end:input.w4_end, w5_end:input.w5_end,
     setup_type:input.setup_type, ohlc:input.ohlc, last5lows:input.last5lows, ssl_test:input.ssl_test,
     active_wave:input.active_wave, wyckoff:input.wyckoff, waves:input.waves, subwave:input.subwave,
     fib_ladder, entry, targets, stop:stopP!=null?fmt(stopP):'—', risk, stop_reason:input.stop_reason,
