@@ -10,6 +10,17 @@ Method:
 3. Wyckoff phase (note SC/spring if seen).
 4. Count waves W1->W5 from the SC low, left->right.
 
+ELLIOTT WAVE RULES — check ALL before reporting:
+ABSOLUTE (never break):
+- W2 must NOT retrace more than 100% of W1 (w2_end must be above w1_start for a bull move)
+- W3 must NOT be the shortest of W1, W3, W5 (by price length). If W3 is shortest, the count is invalid.
+- W4 must NOT overlap W1 top (w4_end must stay above w1_end for a bull move)
+GUIDELINES (flag if broken but can still trade):
+- W3 is typically the longest (ideally >1.618x W1)
+- W4 typically retraces 38.2% of W3
+- W5 typically equals W1 or 0.618x W1
+Supply w1_start, w1_end, w2_end, and any completed w3_end/w4_end/w5_end. The system will validate all rules and flag violations.
+
 CONSISTENCY — CRITICAL:
 - State ONE canonical active_wave: which wave is in progress AND whether the prior wave completed. Pick ONE.
 - waves, subwave and wyckoff MUST all agree with active_wave. Never contradict yourself.
@@ -74,6 +85,12 @@ const TOOL = {
       decision_note: { type: 'string', description: 'Short action sentence, no level numbers' },
       warnings: { type: 'array', items: { type: 'string' } },
       wave_points: { type: 'array', description: 'Key price points for wave chart: [{label:"SC",price:0.55},{label:"W1",price:2.50},...]', items: { type: 'object', properties: { label:{type:'string'}, price:{type:'number'} } } },
+      w1_start: { type: 'number', description: 'W1 start price (SC low)' },
+      w1_end: { type: 'number', description: 'W1 end price (W1 top)' },
+      w2_end: { type: 'number', description: 'W2 end price (W2 bottom)' },
+      w3_end: { type: 'number', description: 'W3 end price (W3 top), null if not yet completed' },
+      w4_end: { type: 'number', description: 'W4 end price (W4 bottom), null if not yet completed' },
+      w5_end: { type: 'number', description: 'W5 end price (W5 top), null if not yet completed' },
     },
     required: ['decision','decision_note','active_wave','setup_type','setup_confirmed'],
   },
@@ -174,8 +191,34 @@ function compute(input) {
     }
   }
 
-  return {
-    ticker:input.ticker, timeframe:input.timeframe, macro_context:input.macro_context, wave_points:input.wave_points,
+  // --- Elliott Wave rule validation ---
+  const ew_warnings = [];
+  const w1s=num(input.w1_start), w1e=num(input.w1_end), w2e=num(input.w2_end);
+  const w3e=num(input.w3_end), w4e=num(input.w4_end), w5e=num(input.w5_end);
+  if(w1s!=null&&w1e!=null&&w2e!=null){
+    const w1len=Math.abs(w1e-w1s);
+    // Rule 1: W2 no full retrace
+    if(w2e<=w1s) ew_warnings.push('EW RULE BROKEN: W2 retraced >100% of W1 — count is invalid. W2 must not go below W1 start.');
+    // Rule 2 & 3: W3 not shortest
+    if(w3e!=null){
+      const w3len=Math.abs(w3e-w2e);
+      const w5len=w5e!=null?Math.abs(w5e-w4e):null;
+      if(w5len!=null&&w3len<w1len&&w3len<w5len) ew_warnings.push('EW RULE BROKEN: W3 is the shortest wave — Elliott Wave rules prohibit this. Count needs revision.');
+      else if(w5len==null&&w3len<w1len) ew_warnings.push('EW WARNING: W3 shorter than W1 — if W5 is also shorter, count is invalid. Monitor.');
+      // Rule 4: W4 no overlap
+      if(w4e!=null&&w1e!=null){
+        const bullish=w1e>w1s;
+        if(bullish&&w4e<w1e) ew_warnings.push('EW RULE BROKEN: W4 overlaps W1 top — count is invalid unless diagonal triangle.');
+        if(!bullish&&w4e>w1e) ew_warnings.push('EW RULE BROKEN: W4 overlaps W1 bottom — count is invalid unless diagonal triangle.');
+      }
+      // Guideline: W3 should be longest
+      if(w3len<w1len*1.0) ew_warnings.push('EW GUIDELINE: W3 is shorter than W1 — typically W3 is the longest. Count is possible but weak.');
+    }
+  }
+  if(ew_warnings.length) warnings.unshift(...ew_warnings);
+
+    return {
+    ticker:input.ticker, timeframe:input.timeframe, macro_context:input.macro_context, wave_points:input.wave_points, w1_start:input.w1_start, w1_end:input.w1_end, w2_end:input.w2_end, w3_end:input.w3_end, w4_end:input.w4_end, w5_end:input.w5_end,
     setup_type:input.setup_type, ohlc:input.ohlc, last5lows:input.last5lows, ssl_test:input.ssl_test,
     active_wave:input.active_wave, wyckoff:input.wyckoff, waves:input.waves, subwave:input.subwave,
     fib_ladder, entry, targets, stop:stopP!=null?fmt(stopP):'—', risk, stop_reason:input.stop_reason,

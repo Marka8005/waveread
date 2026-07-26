@@ -347,7 +347,7 @@ function drawWaveChart(d){
   const canvas=document.getElementById('wvchart');
   if(!canvas)return;
   const dpr=window.devicePixelRatio||1;
-  const W=canvas.offsetWidth||680, H=260;
+  const W=canvas.offsetWidth||680, H=300;
   canvas.width=W*dpr; canvas.height=H*dpr;
   const ctx2=canvas.getContext('2d');
   ctx2.scale(dpr,dpr);
@@ -356,164 +356,180 @@ function drawWaveChart(d){
   if(pts.length<2)return;
 
   const dec=(d.decision||'').toUpperCase();
-  const accentHex='#3DE0A0', warnHex='#F5B544', dangerHex='#FF6B6B';
-  const accentColor=dec==='BUY'?accentHex:dec==='WAIT'?warnHex:dangerHex;
-  const PAD={t:44,b:52,l:56,r:20};
+  const GREEN='#3DE0A0', YELLOW='#F5B544', RED='#FF6B6B', MUTED='#8B93A3', FAINT='rgba(90,98,115,.5)', LINE='rgba(35,40,52,.6)';
+  const pillColor=dec==='BUY'?GREEN:dec==='WAIT'?YELLOW:RED;
+  const PAD={t:50,b:44,l:16,r:72};
   const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 
-  // price range including entry, stop, targets
-  const allP=[...pts.map(p=>p.price)];
+  // gather all prices for range
+  const allP=[...pts.map(p=>parseFloat(p.price))];
+  const lo2=num2(d.swing_low), hi2=num2(d.swing_high);
+  if(lo2)allP.push(lo2); if(hi2)allP.push(hi2);
   const ep=parseFloat((d.entry||'').replace(/[^0-9.]/g,''));
   const sp=parseFloat(d.stop||'');
-  const tps=(d.targets||[]).map(t=>parseFloat(t.price)).filter(v=>!isNaN(v));
+  const tpxs=(d.targets||[]).map(t=>parseFloat(t.price)).filter(v=>!isNaN(v));
   if(!isNaN(ep))allP.push(ep);
   if(!isNaN(sp))allP.push(sp);
-  allP.push(...tps);
-  const minP=Math.min(...allP)*0.94, maxP=Math.max(...allP)*1.06;
+  allP.push(...tpxs);
+  const validP=allP.filter(v=>!isNaN(v)&&isFinite(v));
+  if(!validP.length)return;
+  const minP=Math.min(...validP)*0.92, maxP=Math.max(...validP)*1.08;
   const range=maxP-minP||1;
   function py(price){return PAD.t+cH-(((price-minP)/range)*cH);}
-  function px2(i,total){return PAD.l+(i/(total-1))*cW;}
+  function px2(i,total){return PAD.l+12+(i/(Math.max(total-1,1)))*( cW-24);}
 
-  // --- BACKGROUND ---
+  // background
   ctx2.fillStyle='#0A0C10';
-  ctx2.beginPath(); ctx2.roundRect(0,0,W,H,14); ctx2.fill();
+  ctx2.fillRect(0,0,W,H);
 
-  // subtle grid lines
-  for(let i=0;i<=4;i++){
-    const price=minP+(i/4)*range;
-    const y=py(price);
-    ctx2.strokeStyle='rgba(35,40,52,0.8)'; ctx2.lineWidth=1; ctx2.setLineDash([]);
-    ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
-    ctx2.fillStyle='#5A6273'; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
-    ctx2.fillText(price<10?price.toFixed(2):price.toFixed(0),PAD.l-6,y+3.5);
+  // --- FIB HORIZONTAL LINES (TradingView style) ---
+  // Standard fib levels from swing_low to swing_high
+  const fibDefs=[
+    {r:0,   label:'1.000', col:'rgba(61,224,160,.5)'},
+    {r:0.236,label:'0.764',col:'rgba(139,147,163,.3)'},
+    {r:0.382,label:'0.618',col:'rgba(245,181,68,.5)'},
+    {r:0.5,  label:'0.500',col:'rgba(139,147,163,.3)'},
+    {r:0.618,label:'0.382',col:'rgba(61,224,160,.6)'},
+    {r:0.786,label:'0.214',col:'rgba(139,147,163,.3)'},
+    {r:1.0,  label:'0.000',col:'rgba(61,224,160,.4)'},
+  ];
+  if(lo2&&hi2&&hi2>lo2){
+    fibDefs.forEach(({r,label,col})=>{
+      const fibPrice=hi2-(r*(hi2-lo2));
+      if(fibPrice<minP||fibPrice>maxP)return;
+      const y=py(fibPrice);
+      // line
+      ctx2.strokeStyle=col; ctx2.lineWidth=1; ctx2.setLineDash([]);
+      ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+      // price label right side
+      ctx2.fillStyle=col.replace(/[\d.]+\)$/,'0.9)');
+      ctx2.font='10px IBM Plex Mono,monospace'; ctx2.textAlign='left';
+      ctx2.fillText(label+' ('+fibPrice.toFixed(fibPrice<10?2:1)+')',PAD.l+cW+4,y+3.5);
+    });
   }
-  ctx2.textAlign='left';
 
-  // --- ENTRY ZONE ---
+  // --- ENTRY line (bright) ---
   if(!isNaN(ep)){
     const y=py(ep);
-    ctx2.fillStyle='rgba(61,224,160,.06)';
-    ctx2.fillRect(PAD.l,y-1,cW,py(!isNaN(sp)?sp:ep*0.9)-y+1);
-    ctx2.strokeStyle='rgba(61,224,160,.7)'; ctx2.lineWidth=1.5; ctx2.setLineDash([6,4]);
+    ctx2.strokeStyle='rgba(61,224,160,.9)'; ctx2.lineWidth=1.5; ctx2.setLineDash([8,4]);
     ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
     ctx2.setLineDash([]);
-    // label
-    ctx2.fillStyle='#0A0C10'; ctx2.fillRect(PAD.l+6,y-13,52,14);
-    ctx2.fillStyle=accentHex; ctx2.font='bold 10px IBM Plex Mono,monospace';
-    ctx2.fillText('ENTRY '+ep.toFixed(2),PAD.l+8,y-2);
+    ctx2.fillStyle='rgba(10,12,16,.85)'; ctx2.fillRect(PAD.l+4,y-14,68,15);
+    ctx2.fillStyle=GREEN; ctx2.font='bold 10px IBM Plex Mono,monospace'; ctx2.textAlign='left';
+    ctx2.fillText('ENTRY '+ep.toFixed(ep<10?2:1),PAD.l+6,y-2);
   }
 
-  // --- STOP LINE ---
-  if(!isNaN(sp)){
+  // --- STOP line ---
+  if(!isNaN(sp)&&sp>minP){
     const y=py(sp);
-    ctx2.strokeStyle='rgba(255,107,107,.6)'; ctx2.lineWidth=1; ctx2.setLineDash([4,4]);
+    ctx2.strokeStyle='rgba(255,107,107,.7)'; ctx2.lineWidth=1; ctx2.setLineDash([4,4]);
     ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
     ctx2.setLineDash([]);
-    ctx2.fillStyle='#0A0C10'; ctx2.fillRect(PAD.l+6,y+1,42,13);
-    ctx2.fillStyle=dangerHex; ctx2.font='9px IBM Plex Mono,monospace';
-    ctx2.fillText('STOP '+sp.toFixed(2),PAD.l+8,y+11);
+    ctx2.fillStyle='rgba(10,12,16,.85)'; ctx2.fillRect(PAD.l+4,y+1,58,14);
+    ctx2.fillStyle=RED; ctx2.font='9px IBM Plex Mono,monospace';
+    ctx2.fillText('STOP '+sp.toFixed(sp<10?2:1),PAD.l+6,y+12);
   }
 
-  // --- TARGET lines (faint) ---
-  tps.slice(0,3).forEach((tp,i)=>{
+  // --- TARGET lines ---
+  tpxs.slice(0,3).forEach((tp,i)=>{
+    if(tp<minP||tp>maxP)return;
     const y=py(tp);
-    ctx2.strokeStyle='rgba(61,224,160,.2)'; ctx2.lineWidth=1; ctx2.setLineDash([2,6]);
+    ctx2.strokeStyle='rgba(61,224,160,.25)'; ctx2.lineWidth=1; ctx2.setLineDash([2,6]);
     ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
     ctx2.setLineDash([]);
-    ctx2.fillStyle='rgba(61,224,160,.5)'; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
-    ctx2.fillText('T'+(i+1),PAD.l+cW+2,y+3.5);
+    ctx2.fillStyle='rgba(61,224,160,.6)'; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
+    const pct=d.targets[i]&&d.targets[i].pct?'  '+d.targets[i].pct:'';
+    ctx2.fillText('T'+(i+1)+' '+tp.toFixed(tp<10?2:1)+pct,PAD.l+cW-2,y-3);
     ctx2.textAlign='left';
   });
 
-  // --- SPLIT CONFIRMED vs FUTURE waves ---
-  // Find "current" point — last confirmed wave, future from there
-  const currentLabel=(d.active_wave||'').match(/W(\d)/i);
-  const currentWaveNum=currentLabel?parseInt(currentLabel[1]):null;
-  // find split index: last point that is a confirmed wave
+  // --- find split: confirmed vs projected waves ---
+  const activeLabel=(d.active_wave||'').match(/W(\d)/i);
+  const activeNum=activeLabel?parseInt(activeLabel[1]):null;
   let splitIdx=pts.length-1;
-  pts.forEach((p,i)=>{
-    const m=(p.label||'').match(/W(\d)/i);
-    if(m&&currentWaveNum&&parseInt(m[1])>currentWaveNum) splitIdx=Math.min(splitIdx,i-1);
-  });
+  if(activeNum){
+    pts.forEach((p,i)=>{
+      const m=(p.label||'').match(/W(\d)/i);
+      if(m&&parseInt(m[1])>activeNum&&splitIdx===pts.length-1) splitIdx=i-1;
+    });
+  }
 
-  // confirmed wave path (solid)
-  if(splitIdx>0){
-    const grad=ctx2.createLinearGradient(PAD.l,0,PAD.l+cW*(splitIdx/(pts.length-1)),0);
-    grad.addColorStop(0,'rgba(61,224,160,.4)');
-    grad.addColorStop(1,accentHex);
-    ctx2.strokeStyle=grad; ctx2.lineWidth=2.5; ctx2.lineJoin='round'; ctx2.lineCap='round'; ctx2.setLineDash([]);
+  // --- WAVE PATH ---
+  // Confirmed portion (solid white/green)
+  if(pts.length>1){
+    ctx2.strokeStyle='rgba(230,233,239,.85)'; ctx2.lineWidth=2; ctx2.lineJoin='round'; ctx2.lineCap='round'; ctx2.setLineDash([]);
     ctx2.beginPath();
-    pts.slice(0,splitIdx+1).forEach((p,i)=>{
+    pts.slice(0,Math.min(splitIdx+1,pts.length)).forEach((p,i)=>{
       const x=px2(i,pts.length), y=py(p.price);
       i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);
     });
     ctx2.stroke();
+
+    // Projected portion (dashed, accent colour)
+    if(splitIdx<pts.length-1){
+      ctx2.strokeStyle='rgba(61,224,160,.6)'; ctx2.lineWidth=1.5; ctx2.setLineDash([6,5]);
+      ctx2.beginPath();
+      pts.slice(splitIdx).forEach((p,i)=>{
+        const x=px2(splitIdx+i,pts.length), y=py(p.price);
+        i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);
+      });
+      ctx2.stroke();
+      ctx2.setLineDash([]);
+    }
   }
 
-  // future wave path (dashed, faint)
-  if(splitIdx<pts.length-1){
-    ctx2.strokeStyle='rgba(61,224,160,.4)'; ctx2.lineWidth=2; ctx2.setLineDash([5,5]);
-    ctx2.beginPath();
-    pts.slice(splitIdx).forEach((p,i)=>{
-      const x=px2(splitIdx+i,pts.length), y=py(p.price);
-      i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);
-    });
-    ctx2.stroke();
-    ctx2.setLineDash([]);
-  }
-
-  // --- NODES ---
+  // --- WAVE LABELS (TradingView style: number above/below zigzag node) ---
   pts.forEach((p,i)=>{
     const x=px2(i,pts.length), y=py(p.price);
-    const isFuture=i>splitIdx;
-    const isCurrent=i===splitIdx;
+    const isFuture=i>splitIdx, isCurrent=i===splitIdx;
+    const nodeCol=isFuture?'rgba(61,224,160,.45)':(isCurrent?GREEN:'rgba(230,233,239,.7)');
 
-    // node dot
-    ctx2.fillStyle=isFuture?'rgba(61,224,160,.35)':(isCurrent?accentHex:'#12151C');
-    ctx2.strokeStyle=isFuture?'rgba(61,224,160,.5)':accentHex;
-    ctx2.lineWidth=isCurrent?2.5:1.5; ctx2.setLineDash([]);
-    ctx2.beginPath(); ctx2.arc(x,y,isCurrent?5:3.5,0,Math.PI*2);
-    ctx2.fill(); ctx2.stroke();
+    // small dot
+    ctx2.fillStyle='#0A0C10'; ctx2.strokeStyle=nodeCol; ctx2.lineWidth=1.5; ctx2.setLineDash([]);
+    ctx2.beginPath(); ctx2.arc(x,y,3,0,Math.PI*2); ctx2.fill(); ctx2.stroke();
 
-    // "NOW" pulse ring on current node
     if(isCurrent){
-      ctx2.strokeStyle='rgba(61,224,160,.3)'; ctx2.lineWidth=1.5;
-      ctx2.beginPath(); ctx2.arc(x,y,9,0,Math.PI*2); ctx2.stroke();
+      ctx2.strokeStyle='rgba(61,224,160,.4)'; ctx2.lineWidth=1;
+      ctx2.beginPath(); ctx2.arc(x,y,7,0,Math.PI*2); ctx2.stroke();
     }
 
-    // label: above odd, below even — offset further to avoid overlap
+    // label: alternate above/below
     const above=i%2===0;
-    const lx=x, ly=above?y-16:y+14;
-    ctx2.fillStyle=isFuture?'rgba(230,233,239,.4)':'#E6E9EF';
-    ctx2.font=`bold ${isCurrent?12:10}px Space Grotesk,system-ui,sans-serif`;
+    const labelY=above?y-22:y+18;
+    ctx2.fillStyle=isFuture?'rgba(61,224,160,.5)':'rgba(230,233,239,.9)';
+    ctx2.font=`bold ${isCurrent?12:11}px Space Grotesk,system-ui,sans-serif`;
     ctx2.textAlign='center';
-    ctx2.fillText(p.label,lx,ly);
-    ctx2.fillStyle=isFuture?'rgba(139,147,163,.4)':'#8B93A3';
+    ctx2.fillText(p.label,x,labelY);
+    // price below label
+    ctx2.fillStyle=isFuture?'rgba(90,98,115,.5)':MUTED;
     ctx2.font='9px IBM Plex Mono,monospace';
-    ctx2.fillText(typeof p.price==='number'?p.price.toFixed(p.price<10?2:0):p.price,lx,above?ly-11:ly+11);
+    const priceStr=typeof p.price==='number'?p.price.toFixed(p.price<10?2:1):String(p.price);
+    ctx2.fillText(priceStr,x,above?labelY+11:labelY+11);
     ctx2.textAlign='left';
   });
 
-  // --- HEADER BAR ---
-  // ticker + timeframe left
-  ctx2.fillStyle='#E6E9EF'; ctx2.font='bold 13px Space Grotesk,system-ui,sans-serif';
-  ctx2.fillText('$'+(d.ticker||'—')+(d.timeframe?' · '+d.timeframe:''),PAD.l,22);
+  // --- HEADER ---
+  ctx2.fillStyle='rgba(10,12,16,.7)'; ctx2.fillRect(0,0,W,PAD.t-4);
+  ctx2.fillStyle='#E6E9EF'; ctx2.font='bold 14px Space Grotesk,system-ui,sans-serif'; ctx2.textAlign='left';
+  ctx2.fillText('$'+(d.ticker||'—')+(d.timeframe?' · '+d.timeframe:''),PAD.l,28);
+  // sub: active wave
+  ctx2.fillStyle=MUTED; ctx2.font='10px IBM Plex Mono,monospace';
+  ctx2.fillText((d.active_wave||'').slice(0,55),PAD.l,42);
 
-  // decision pill right
-  const pillW=56, pillH=20, pillX=W-PAD.r-pillW, pillY=8;
-  ctx2.fillStyle=accentColor+'22';
-  ctx2.beginPath(); ctx2.roundRect(pillX,pillY,pillW,pillH,6); ctx2.fill();
-  ctx2.strokeStyle=accentColor; ctx2.lineWidth=1;
-  ctx2.beginPath(); ctx2.roundRect(pillX,pillY,pillW,pillH,6); ctx2.stroke();
-  ctx2.fillStyle=accentColor; ctx2.font='bold 11px IBM Plex Mono,monospace'; ctx2.textAlign='center';
-  ctx2.fillText(dec,pillX+pillW/2,pillY+14); ctx2.textAlign='left';
+  // decision pill
+  const pillW=60,pillH=22,pillX=W-PAD.r-pillW-4,pillY=10;
+  ctx2.fillStyle=pillColor+'22'; ctx2.beginPath(); ctx2.roundRect(pillX,pillY,pillW,pillH,6); ctx2.fill();
+  ctx2.strokeStyle=pillColor; ctx2.lineWidth=1; ctx2.beginPath(); ctx2.roundRect(pillX,pillY,pillW,pillH,6); ctx2.stroke();
+  ctx2.fillStyle=pillColor; ctx2.font='bold 11px IBM Plex Mono,monospace'; ctx2.textAlign='center';
+  ctx2.fillText(dec,pillX+pillW/2,pillY+15); ctx2.textAlign='left';
 
-  // --- FOOTER: waveread.vercel.app ---
-  ctx2.fillStyle='rgba(90,98,115,.7)'; ctx2.font='10px IBM Plex Mono,monospace';
-  ctx2.textAlign='center';
-  ctx2.fillText('waveread.vercel.app',W/2,H-10);
+  // --- FOOTER ---
+  ctx2.fillStyle='rgba(90,98,115,.5)'; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='center';
+  ctx2.fillText('waveread.vercel.app',W/2,H-8);
   ctx2.textAlign='left';
 }
+
+function num2(x){if(x==null)return null;const n=parseFloat(String(x).replace(/[^0-9.\-]/g,''));return isFinite(n)?n:null;}
 
 function downloadChart(){
   const canvas=document.getElementById('wvchart');
