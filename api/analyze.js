@@ -20,7 +20,10 @@ SETUP TYPE — choose setup_type and make entry MATCH the thesis:
 - "breakout": entry just above a confirmation level. entry_price = that level.
 NEVER propose buying far above a low you just called support. Entry must fit the thesis.
 
-CONFIRMATION: set setup_confirmed = true ONLY if the trigger has actually printed. If waiting for confirmation, set false and decision = WAIT. A single green bounce in a downtrend is NOT confirmed.
+CONFIRMATION RULES (be specific, not always conservative):
+- set setup_confirmed = true if ANY of: (a) volume is clearly climactic/spike on the reversal candle AND price closed strongly, (b) a clear hammer/doji/engulfing reversal candle printed at a Fib level, (c) price has already bounced off the level and held for 2+ candles.
+- set setup_confirmed = false ONLY if: price is still falling with no reversal signal, OR the bounce is a single weak candle with no volume confirmation.
+- Do NOT default to false. A strong SC + high volume + reversal candle = confirmed = BUY.
 
 ENTRY: give swing_low and swing_high. For pullback: entry_fib. For reversal/breakout: entry_price.
 TARGETS/STOP: targets_px and stop_price as plain numbers. For a long, stop_price MUST be below entry. stop_reason consistent with stop_price.
@@ -61,6 +64,7 @@ const TOOL = {
       swing_low: { type: 'number', description: 'Low of the move being retraced' },
       swing_high: { type: 'number', description: 'High of that move' },
       entry_fib: { type: 'number', enum: [38.2,50,61.8,78.6], description: 'For pullback: the Fib level to enter at' },
+      alt_entry_fib: { type: 'number', enum: [38.2,50,61.8,78.6], description: 'Alternative closer Fib level if risk is >15% — a better entry for improved R/R' },
       entry_price: { type: 'number', description: 'For reversal/breakout: the entry price' },
       targets_px: { type: 'array', items: { type: 'number' }, description: 'T1..T3 target prices' },
       stop_price: { type: 'number' },
@@ -69,6 +73,7 @@ const TOOL = {
       decision: { type: 'string', enum: ['BUY','WAIT','AVOID'] },
       decision_note: { type: 'string', description: 'Short action sentence, no level numbers' },
       warnings: { type: 'array', items: { type: 'string' } },
+      wave_points: { type: 'array', description: 'Key price points for wave chart: [{label:"SC",price:0.55},{label:"W1",price:2.50},...]', items: { type: 'object', properties: { label:{type:'string'}, price:{type:'number'} } } },
     },
     required: ['decision','decision_note','active_wave','setup_type','setup_confirmed'],
   },
@@ -159,12 +164,18 @@ function compute(input) {
     } else {
       const rp=((entryPrice-stopP)/entryPrice)*100;
       risk='-'+fmt(rp)+'% to stop';
+      if(rp>15){
+        const altFib=num(input.alt_entry_fib);
+        let altNote='';
+        if(ladder&&altFib!=null){const altLvl=ladder.find(l=>l.p===altFib);if(altLvl)altNote=` Consider waiting for ${altFib}% (${fmt(altLvl.price)}) for better R/R.`;}
+        warnings.unshift(`High risk: −${fmt(rp)}% to stop is large for most position sizes.${altNote}`);
+      }
       if(tps.length){const r1=((tps[0]-entryPrice)/entryPrice)*100;if(r1>0&&r1<rp)warnings.unshift(`Poor risk/reward: risking ~${fmt(rp)}% to make ~${fmt(r1)}% at T1 — entry may be too far from the actionable level.`);}
     }
   }
 
   return {
-    ticker:input.ticker, timeframe:input.timeframe, macro_context:input.macro_context,
+    ticker:input.ticker, timeframe:input.timeframe, macro_context:input.macro_context, wave_points:input.wave_points,
     setup_type:input.setup_type, ohlc:input.ohlc, last5lows:input.last5lows, ssl_test:input.ssl_test,
     active_wave:input.active_wave, wyckoff:input.wyckoff, waves:input.waves, subwave:input.subwave,
     fib_ladder, entry, targets, stop:stopP!=null?fmt(stopP):'—', risk, stop_reason:input.stop_reason,

@@ -96,6 +96,13 @@ textarea{resize:vertical;min-height:58px;line-height:1.5}
 .warnbox svg{flex:0 0 auto;margin-top:1px}
 .macro-badge{display:inline-block;background:rgba(100,120,255,.12);border:1px solid rgba(100,120,255,.3);color:#9aaeff;font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:6px;margin-bottom:10px}
 
+/* wave chart */
+.wave-chart-wrap{margin-bottom:12px}
+.wave-chart-wrap canvas{width:100%;border-radius:12px;display:block}
+.wave-chart-actions{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
+.chart-btn{background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:7px 12px;cursor:pointer;transition:.15s}
+.chart-btn:hover{border-color:var(--accent);color:var(--accent)}
+
 /* share button */
 .share-row{display:flex;justify-content:flex-end;margin-bottom:12px}
 .share-btn{background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-family:var(--mono);font-size:12px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.15s}
@@ -304,6 +311,10 @@ function render(d,dual){
   // share button
   h+=`<div class="share-row"><button class="share-btn" onclick="shareResult()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke-linecap="round" stroke-linejoin="round"/></svg>Share to X</button></div>`;
 
+  // wave chart
+  if(d.wave_points&&d.wave_points.length>=2){
+    h+=`<div class="wave-chart-wrap"><canvas id="wvchart" height="220"></canvas><div class="wave-chart-actions"><button class="chart-btn" onclick="downloadChart()">↓ Save chart</button></div></div>`;
+  }
   h+=`<div class="verdict"><div>`;
   if(dual)h+=`<span class="macro-badge">Weekly + Daily</span><br>`;
   h+=`<div class="vhead">${esc(d.ticker||'—')}${d.timeframe?' · '+esc(d.timeframe):''}${d.setup_type?' · '+esc(d.setup_type):''}</div><div class="vnote">${esc(d.decision_note||dec)}</div></div><div class="pill ${pc}">${esc(dec||'—')}</div></div>`;
@@ -329,6 +340,140 @@ function render(d,dual){
 
   resultEl.innerHTML=h;resultEl.classList.add('show');
   resultEl.scrollIntoView({behavior:'smooth',block:'start'});
+  if(d.wave_points&&d.wave_points.length>=2) setTimeout(()=>drawWaveChart(d),80);
+}
+
+function drawWaveChart(d){
+  const canvas=document.getElementById('wvchart');
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth||680, H=220;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx2=canvas.getContext('2d');
+  ctx2.scale(dpr,dpr);
+
+  const pts=(d.wave_points||[]).filter(p=>p&&p.price!=null);
+  if(pts.length<2)return;
+
+  const accent='#3DE0A0', warn='#F5B544', danger='#FF6B6B', muted='#8B93A3', faint='#5A6273', panel='#12151C', line='#232834', text='#E6E9EF';
+  const PAD={t:28,b:36,l:52,r:24};
+  const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
+
+  // gather all price values: wave points + fib levels
+  const allPrices=pts.map(p=>p.price);
+  const lo2=d.swing_low!=null?parseFloat(d.swing_low):null;
+  const hi2=d.swing_high!=null?parseFloat(d.swing_high):null;
+  if(lo2!=null)allPrices.push(lo2);
+  if(hi2!=null)allPrices.push(hi2);
+
+  const minP=Math.min(...allPrices)*0.96, maxP=Math.max(...allPrices)*1.04;
+  const range=maxP-minP||1;
+  function px(price){return PAD.t+cH-(((price-minP)/range)*cH);}
+  function tx(i){return PAD.l+(i/(pts.length-1))*cW;}
+
+  // background
+  ctx2.fillStyle=panel; ctx2.beginPath(); ctx2.roundRect(0,0,W,H,12); ctx2.fill();
+
+  // fib lines
+  const fibLevels=lo2!=null&&hi2!=null?[
+    {p:38.2,c:'rgba(61,224,160,.25)'},
+    {p:50,c:'rgba(61,224,160,.2)'},
+    {p:61.8,c:'rgba(61,224,160,.35)'},
+    {p:78.6,c:'rgba(61,224,160,.2)'},
+  ]:[];
+  fibLevels.forEach(({p,c})=>{
+    const price=hi2-(p/100)*(hi2-lo2);
+    const y=px(price);
+    ctx2.strokeStyle=c; ctx2.lineWidth=1; ctx2.setLineDash([4,4]);
+    ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+    ctx2.setLineDash([]);
+    ctx2.fillStyle='rgba(61,224,160,.7)'; ctx2.font='10px IBM Plex Mono,monospace';
+    ctx2.fillText(p+'%',PAD.l+cW+2,y+3.5);
+  });
+
+  // entry line
+  if(d.entry&&d.entry!=='No confirmed entry'){
+    const ep=parseFloat((d.entry||'').replace(/[^0-9.]/g,''));
+    if(!isNaN(ep)){
+      const y=px(ep);
+      ctx2.strokeStyle='rgba(61,224,160,.9)'; ctx2.lineWidth=1.5; ctx2.setLineDash([6,3]);
+      ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+      ctx2.setLineDash([]);
+      ctx2.fillStyle=accent; ctx2.font='bold 10px IBM Plex Mono,monospace';
+      ctx2.fillText('ENTRY',PAD.l+4,y-4);
+    }
+  }
+
+  // stop line
+  if(d.stop&&d.stop!=='—'){
+    const sp=parseFloat(d.stop);
+    if(!isNaN(sp)){
+      const y=px(sp);
+      ctx2.strokeStyle='rgba(255,107,107,.7)'; ctx2.lineWidth=1; ctx2.setLineDash([3,3]);
+      ctx2.beginPath(); ctx2.moveTo(PAD.l,y); ctx2.lineTo(PAD.l+cW,y); ctx2.stroke();
+      ctx2.setLineDash([]);
+      ctx2.fillStyle=danger; ctx2.font='10px IBM Plex Mono,monospace';
+      ctx2.fillText('STOP',PAD.l+4,y-3);
+    }
+  }
+
+  // wave path
+  ctx2.strokeStyle=accent; ctx2.lineWidth=2.5; ctx2.lineJoin='round'; ctx2.lineCap='round';
+  ctx2.beginPath();
+  pts.forEach((p,i)=>{i===0?ctx2.moveTo(tx(i),px(p.price)):ctx2.lineTo(tx(i),px(p.price));});
+  ctx2.stroke();
+
+  // wave nodes + labels
+  pts.forEach((p,i)=>{
+    const x=tx(i), y=px(p.price);
+    const isEntry=d.entry&&(d.entry||'').includes(p.label);
+    ctx2.fillStyle=isEntry?accent:(p.label==='SC'?warn:accent);
+    ctx2.beginPath(); ctx2.arc(x,y,4,0,Math.PI*2); ctx2.fill();
+    ctx2.fillStyle=panel; ctx2.beginPath(); ctx2.arc(x,y,2,0,Math.PI*2); ctx2.fill();
+
+    // label above/below alternating
+    ctx2.fillStyle=text; ctx2.font='bold 11px Space Grotesk,system-ui,sans-serif';
+    ctx2.textAlign='center';
+    const above=i%2===0;
+    ctx2.fillText(p.label,x,above?y-10:y+18);
+    ctx2.fillStyle=muted; ctx2.font='10px IBM Plex Mono,monospace';
+    ctx2.fillText(p.price,x,above?y-22:y+28);
+    ctx2.textAlign='left';
+  });
+
+  // price axis (left)
+  const steps=4;
+  for(let i=0;i<=steps;i++){
+    const price=minP+(i/steps)*range;
+    const y=px(price);
+    ctx2.strokeStyle=line; ctx2.lineWidth=1;
+    ctx2.beginPath(); ctx2.moveTo(PAD.l-4,y); ctx2.lineTo(PAD.l,y); ctx2.stroke();
+    ctx2.fillStyle=faint; ctx2.font='9px IBM Plex Mono,monospace'; ctx2.textAlign='right';
+    ctx2.fillText(price.toFixed(price<10?2:0),PAD.l-6,y+3);
+    ctx2.textAlign='left';
+  }
+
+  // ticker + decision badge
+  const dec=(d.decision||'').toUpperCase();
+  const badgeColor=dec==='BUY'?accent:dec==='WAIT'?warn:danger;
+  ctx2.font='bold 13px Space Grotesk,system-ui,sans-serif'; ctx2.fillStyle=text;
+  ctx2.fillText('$'+(d.ticker||'—')+' · WaveRead',PAD.l,PAD.t-10);
+  const badgeW=50, badgeH=18;
+  const bx=W-PAD.r-badgeW, by=PAD.t-18;
+  ctx2.fillStyle=badgeColor+'22'; ctx2.beginPath(); ctx2.roundRect(bx,by,badgeW,badgeH,5); ctx2.fill();
+  ctx2.strokeStyle=badgeColor; ctx2.lineWidth=1; ctx2.beginPath(); ctx2.roundRect(bx,by,badgeW,badgeH,5); ctx2.stroke();
+  ctx2.fillStyle=badgeColor; ctx2.font='bold 11px IBM Plex Mono,monospace'; ctx2.textAlign='center';
+  ctx2.fillText(dec,bx+badgeW/2,by+13); ctx2.textAlign='left';
+}
+
+function downloadChart(){
+  const canvas=document.getElementById('wvchart');
+  if(!canvas)return;
+  const link=document.createElement('a');
+  link.download='waveread-'+(currentResult&&currentResult.ticker||'chart')+'.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  showToast('Chart saved!');
 }
 
 // --- SHARE ---
