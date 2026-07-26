@@ -58,6 +58,13 @@ Your job is to produce ONE unified trade plan that combines both timeframes:
 3. macro_context = one short line summarizing the weekly read.
 4. The entry must be consistent with BOTH timeframes — if weekly says W4 correction ongoing, daily entry should be at the expected W4 bottom zone, not a pullback above it.
 
+CHART CALIBRATION (required — the app draws your analysis onto the user's DAILY chart image):
+Look at the DAILY image (the second one) and report chart_calibration:
+- top_price / bottom_price: price values at the very top and very bottom of the PRICE plot area (read the axis labels and extrapolate to the actual edges).
+- plot_top_pct / plot_bottom_pct: where the price plot area starts and ends vertically as fractions of image height (0-1). plot_bottom_pct must be ABOVE the volume panel.
+- plot_left_pct / plot_right_pct: horizontal edges of the plot area as fractions of image width (plot_right_pct = where the price axis labels begin).
+Also give each wave_point an x_pct (0=left edge, 1=right edge of the plot area) matching where that pivot sits in time on the DAILY chart, and projected:true for waves that have not formed yet.
+
 CONSISTENCY: ONE canonical active_wave. All fields must agree with it.
 SETUP TYPE + ENTRY: same rules as single-chart mode.
 For a long: stop_price MUST be below entry.
@@ -109,7 +116,7 @@ const TOOL = {
       w4_end: { type: 'number', description: 'W4 end price (W4 bottom), null if not yet completed' },
       w5_end: { type: 'number', description: 'W5 end price (W5 top), null if not yet completed' },
     },
-    required: ['decision','decision_note','active_wave','setup_type','setup_confirmed'],
+    required: ['decision','decision_note','active_wave','setup_type','setup_confirmed','chart_calibration','wave_points'],
   },
 };
 

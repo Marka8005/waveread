@@ -314,7 +314,7 @@ function render(d,dual){
   h+=`<div class="share-row"><button class="share-btn" onclick="shareResult()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke-linecap="round" stroke-linejoin="round"/></svg>Share to X</button></div>`;
 
   // wave chart
-  if(chartAllowed&&d.chart_calibration&&state.daily&&state.daily.dataUrl){
+  if(chartAllowed&&state.daily&&state.daily.dataUrl){
     h+=`<div class="wave-chart-wrap"><canvas id="wvchart"></canvas><div class="wave-chart-actions"><button class="chart-btn" onclick="downloadChart()">↓ Save chart</button></div></div>`;
   }
   h+=`<div class="verdict"><div>`;
@@ -342,7 +342,7 @@ function render(d,dual){
 
   resultEl.innerHTML=h;resultEl.classList.add('show');
   resultEl.scrollIntoView({behavior:'smooth',block:'start'});
-  if(chartAllowed&&d.chart_calibration&&state.daily&&state.daily.dataUrl) setTimeout(()=>drawWaveChart(d),80);
+  if(chartAllowed&&state.daily&&state.daily.dataUrl) setTimeout(()=>drawWaveChart(d),80);
 }
 
 function drawWaveChart(d){
@@ -352,7 +352,7 @@ function drawWaveChart(d){
   const src=state.daily&&state.daily.dataUrl;
   const wrap=canvas.parentElement;
   if(!cal||!src||cal.top_price==null||cal.bottom_price==null){
-    if(wrap)wrap.style.display='none';
+    if(wrap)wrap.innerHTML='<div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:12.5px;color:var(--muted);text-align:center">Chart overlay unavailable — the price axis could not be read from this image. Try a screenshot where the axis labels are clearly visible.</div>';
     return;
   }
 
