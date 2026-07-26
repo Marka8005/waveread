@@ -10,60 +10,13 @@ Method:
 3. Wyckoff phase (note SC/spring if seen).
 4. Count waves W1->W5 from the SC low, left->right.
 
-CHART CALIBRATION (required — the app draws your analysis onto the user's own chart image):
-Look at the DAILY chart image and report chart_calibration:
-- top_price / bottom_price: the price values at the very top and very bottom of the PRICE plot area (use the axis labels; extrapolate to the actual edges).
-- plot_top_pct / plot_bottom_pct: where the price plot area starts and ends vertically, as fractions of total image height. plot_bottom_pct must be ABOVE the volume bars panel — the price area only.
-- plot_left_pct / plot_right_pct: where the plot area starts and ends horizontally (plot_right_pct = where the price axis labels begin).
-Be as accurate as you can — these fractions position every line that gets drawn.
-
-For each wave_point also give x_pct: its horizontal position within the plot area (0=left edge, 1=right edge), matching where that pivot actually sits in time on the chart. For projected/not-yet-formed waves, set projected:true and place x_pct to the right of the last real pivot (up to 1.0).
-
-ELLIOTT WAVE RULES — check ALL before reporting:
-ABSOLUTE (never break):
-- W2 must NOT retrace more than 100% of W1 (w2_end must be above w1_start for a bull move)
-- W3 must NOT be the shortest of W1, W3, W5 (by price length). If W3 is shortest, the count is invalid.
-- W4 must NOT overlap W1 top (w4_end must stay above w1_end for a bull move)
-GUIDELINES (flag if broken but can still trade):
-- W3 is typically the longest (ideally >1.618x W1)
-- W4 typically retraces 38.2% of W3
-- W5 typically equals W1 or 0.618x W1
-Supply w1_start, w1_end, w2_end, and any completed w3_end/w4_end/w5_end. The system will validate all rules and flag violations.
-
-CONSISTENCY — CRITICAL:
-- State ONE canonical active_wave: which wave is in progress AND whether the prior wave completed. Pick ONE.
-- waves, subwave and wyckoff MUST all agree with active_wave. Never contradict yourself.
-
-SETUP TYPE — choose setup_type and make entry MATCH the thesis:
-- "reversal": buy NEAR the reversal low. entry_price = at/just above the actual reversal-low candle; must NOT be above current price and NOT far above the recent low. The Fib ladder is for targets/context only.
-- "pullback": wait for retracement DOWN to a Fib level. entry_fib = the level (38.2/50/61.8/78.6). WAIT only if price has NOT yet reached the level.
-- "breakout": entry just above a confirmation level. entry_price = that level.
-NEVER propose buying far above a low you just called support. Entry must fit the thesis.
-
-CONFIRMATION RULES (be specific, not always conservative):
-- set setup_confirmed = true if ANY of: (a) volume is clearly climactic/spike on the reversal candle AND price closed strongly, (b) a clear hammer/doji/engulfing reversal candle printed at a Fib level, (c) price has already bounced off the level and held for 2+ candles.
-- set setup_confirmed = false ONLY if: price is still falling with no reversal signal, OR the bounce is a single weak candle with no volume confirmation.
-- Do NOT default to false. A strong SC + high volume + reversal candle = confirmed = BUY.
-
-ENTRY: give swing_low and swing_high. For pullback: entry_fib. For reversal/breakout: entry_price.
-TARGETS/STOP: targets_px and stop_price as plain numbers. For a long, stop_price MUST be below entry. stop_reason consistent with stop_price.
-
-Keep every text field to ONE short line, phone-readable. decision_note = short action sentence. No time estimates. Warnings if image isn't sharp enough. Report via report_trade_plan.`;
-
-const SYSTEM_DUAL = `You are a trading analyst applying a strict protocol (Elliott Wave + Wyckoff + Fibonacci) to TWO candlestick chart images: a WEEKLY chart (macro context) and a DAILY chart (entry timing). Work in ENGLISH.
-
-Your job is to produce ONE unified trade plan that combines both timeframes:
-1. Use the WEEKLY chart for macro wave count (W1→W5 big picture), Wyckoff phase, and major Fib levels.
-2. Use the DAILY chart for entry timing, sub-wave position, and the specific Fib level to enter at.
-3. macro_context = one short line summarizing the weekly read.
-4. The entry must be consistent with BOTH timeframes — if weekly says W4 correction ongoing, daily entry should be at the expected W4 bottom zone, not a pullback above it.
-
-CHART CALIBRATION (required — the app draws your analysis onto the user's DAILY chart image):
-Look at the DAILY image (the second one) and report chart_calibration:
-- top_price / bottom_price: price values at the very top and very bottom of the PRICE plot area (read the axis labels and extrapolate to the actual edges).
-- plot_top_pct / plot_bottom_pct: where the price plot area starts and ends vertically as fractions of image height (0-1). plot_bottom_pct must be ABOVE the volume panel.
-- plot_left_pct / plot_right_pct: horizontal edges of the plot area as fractions of image width (plot_right_pct = where the price axis labels begin).
-Also give each wave_point an x_pct (0=left edge, 1=right edge of the plot area) matching where that pivot sits in time on the DAILY chart, and projected:true for waves that have not formed yet.
+CHART CALIBRATION (required — the app draws your analysis onto the user's chart image):
+Pick TWO clearly labelled horizontal gridlines on the PRICE axis (ignore the volume panel and its axis numbers entirely — volume labels are usually the small values near the bottom).
+- ref1_price + ref1_y_pct: one gridline in the upper half, and its vertical position as a fraction of the WHOLE image height (0 = very top of the image, 1 = very bottom).
+- ref2_price + ref2_y_pct: another gridline in the lower half of the PRICE area, same format.
+Measure y_pct against the full image, not the plot area. Be precise — the app interpolates every drawn line from these two points.
+- plot_left_pct / plot_right_pct: horizontal edges of the candle area as fractions of image width.
+Also give each wave_point an x_pct (0=left edge, 1=right edge of the candle area) matching where that pivot sits in time, and projected:true for waves that have not formed yet.
 
 CONSISTENCY: ONE canonical active_wave. All fields must agree with it.
 SETUP TYPE + ENTRY: same rules as single-chart mode.
@@ -101,13 +54,13 @@ const TOOL = {
       decision_note: { type: 'string', description: 'Short action sentence, no level numbers' },
       warnings: { type: 'array', items: { type: 'string' } },
       wave_points: { type: 'array', description: 'Wave pivots in order, each with the label, its price, and x_pct = its horizontal position in the chart plot area (0 = left edge, 1 = right edge). Projected/future waves get x_pct beyond the last real pivot.', items: { type: 'object', properties: { label:{type:'string'}, price:{type:'number'}, x_pct:{type:'number'}, projected:{type:'boolean'} } } },
-      chart_calibration: { type: 'object', description: 'Maps the DAILY image to prices so the app can draw lines on it. Read the price axis and the plot area edges.', properties: {
-        top_price: { type:'number', description:'Price value at the TOP edge of the plot area' },
-        bottom_price: { type:'number', description:'Price value at the BOTTOM edge of the plot area' },
-        plot_top_pct: { type:'number', description:'Top edge of plot area as fraction of image height (0-1)' },
-        plot_bottom_pct: { type:'number', description:'Bottom edge of the price plot area (above the volume panel) as fraction of image height (0-1)' },
-        plot_left_pct: { type:'number', description:'Left edge of plot area as fraction of image width (0-1)' },
-        plot_right_pct: { type:'number', description:'Right edge of plot area (where the price axis starts) as fraction of image width (0-1)' }
+      chart_calibration: { type: 'object', description: 'Two reference points read off the PRICE axis, so the app can map prices to pixels on the image.', properties: {
+        ref1_price: { type:'number', description:'Price value of a clearly labelled gridline in the UPPER half of the price area' },
+        ref1_y_pct: { type:'number', description:'Vertical position of that gridline as a fraction of TOTAL image height (0=very top of image, 1=very bottom)' },
+        ref2_price: { type:'number', description:'Price value of a clearly labelled gridline in the LOWER half of the price area (must differ from ref1)' },
+        ref2_y_pct: { type:'number', description:'Vertical position of that gridline as a fraction of TOTAL image height' },
+        plot_left_pct: { type:'number', description:'Left edge of the candles area as fraction of image width' },
+        plot_right_pct: { type:'number', description:'Right edge of the candles area (where price axis labels begin) as fraction of image width' }
       } },
       w1_start: { type: 'number', description: 'W1 start price (SC low)' },
       w1_end: { type: 'number', description: 'W1 end price (W1 top)' },
@@ -291,7 +244,7 @@ export default async function handler(req, res) {
       method:'POST',
       headers:{'content-type':'application/json','x-api-key':process.env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:1200,
+        model:'claude-sonnet-4-6', max_tokens:1200, temperature:0,
         system:dual?SYSTEM_DUAL:SYSTEM_SINGLE,
         tools:[TOOL], tool_choice:{type:'tool',name:'report_trade_plan'},
         messages:[{role:'user',content}],

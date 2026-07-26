@@ -351,7 +351,7 @@ function drawWaveChart(d){
   const cal=d.chart_calibration;
   const src=state.daily&&state.daily.dataUrl;
   const wrap=canvas.parentElement;
-  if(!cal||!src||cal.top_price==null||cal.bottom_price==null){
+  if(!cal||!src||cal.ref1_price==null||cal.ref2_price==null||cal.ref1_y_pct==null||cal.ref2_y_pct==null||cal.ref1_price===cal.ref2_price){
     if(wrap)wrap.innerHTML='<div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:12.5px;color:var(--muted);text-align:center">Chart overlay unavailable — the price axis could not be read from this image. Try a screenshot where the axis labels are clearly visible.</div>';
     return;
   }
@@ -371,16 +371,15 @@ function drawWaveChart(d){
     const dec=(d.decision||'').toUpperCase();
     const pillColor=dec==='BUY'?GREEN:dec==='WAIT'?YELLOW:RED;
 
-    const pT=(cal.plot_top_pct!=null?cal.plot_top_pct:0.05)*H;
-    const pB=(cal.plot_bottom_pct!=null?cal.plot_bottom_pct:0.78)*H;
     const pL=(cal.plot_left_pct!=null?cal.plot_left_pct:0.02)*W;
     const pR=(cal.plot_right_pct!=null?cal.plot_right_pct:0.93)*W;
-    const topP=cal.top_price, botP=cal.bottom_price;
-    if(!(topP>botP)){if(wrap)wrap.style.display='none';return;}
-
-    function py(price){return pT+((topP-price)/(topP-botP))*(pB-pT);}
+    // linear interpolation from two reference gridlines
+    const y1=cal.ref1_y_pct*H, y2=cal.ref2_y_pct*H;
+    const p1=cal.ref1_price, p2=cal.ref2_price;
+    const slope=(y2-y1)/(p2-p1);
+    function py(price){return y1+(price-p1)*slope;}
     function pxx(xp){return pL+Math.max(0,Math.min(1,xp))*(pR-pL);}
-    function inView(price){return price<=topP&&price>=botP;}
+    function inView(price){const y=py(price);return y>4&&y<H-4;}
     function fmtP(v){return v<10?v.toFixed(2):v.toFixed(v<100?1:0);}
 
     function hline(price,color,dash,lw,label,labelSide){
@@ -422,7 +421,11 @@ function drawWaveChart(d){
     if(!isNaN(sp)) hline(sp,RED,[5,4],1.4,'STOP '+fmtP(sp),'left');
 
     // --- Wave pivots + labels ---
-    const pts=(d.wave_points||[]).filter(function(p){return p&&p.price!=null&&p.x_pct!=null&&inView(p.price)});
+    let pts=(d.wave_points||[]).filter(function(p){return p&&p.price!=null});
+    if(pts.length&&pts.some(function(p){return p.x_pct==null})){
+      pts=pts.map(function(p,i){return Object.assign({},p,{x_pct:pts.length>1?i/(pts.length-1):0.5});});
+    }
+    pts=pts.filter(function(p){return inView(p.price)});
     if(pts.length>1){
       const real=pts.filter(function(p){return !p.projected});
       const proj=pts.filter(function(p){return p.projected});
